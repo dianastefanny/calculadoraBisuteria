@@ -10,6 +10,4 @@ module.exports = {
   inputBorder: 'rgba(194, 255, 250, 0.28)',
   error: '#8C3B25',
   placeholder: '#A8F5F0',
-  successBackground: '#D7FFF1',
-  successText: '#0D654B',
 };

@@ -6,6 +6,12 @@ export type FormErrorProps = {
   className?: string;
 };
 
+const VARIANT = {
+  error: { icon: "⚠", iconClassName: "text-orange-500" },
+  success: { icon: "✓", iconClassName: "text-brand-green" },
+} as const;
+
+/** Banner de mensajes de formulario (error/éxito): tarjeta blanca con ícono, reutilizable en cualquier pantalla. */
 export function FormError({
   message,
   variant = "error",
@@ -13,17 +19,14 @@ export function FormError({
 }: FormErrorProps) {
   if (!message) return null;
 
-  const isSuccess = variant === "success";
+  const { icon, iconClassName } = VARIANT[variant];
 
   return (
     <View
-      className={`mb-4 rounded-[9px] p-3 ${isSuccess ? "bg-brand-success-background" : "bg-brand-error"} ${className}`}
+      className={`mb-4 flex-row items-center gap-3 rounded-xl bg-white p-3 shadow-md shadow-black/20 ${className}`}
     >
-      <Text
-        className={isSuccess ? "text-brand-success-text" : "font-bold text-white"}
-      >
-        {message}
-      </Text>
+      <Text className={`text-lg font-bold ${iconClassName}`}>{icon}</Text>
+      <Text className="flex-1 text-gray-700">{message}</Text>
     </View>
   );
 }
