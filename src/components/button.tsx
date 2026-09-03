@@ -1,9 +1,11 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { cssInterop } from "nativewind";
 import {
   ActivityIndicator,
   Pressable,
   Text,
+  View,
   type PressableProps,
 } from "react-native";
 
@@ -16,27 +18,70 @@ cssInterop(LinearGradient, { className: "style" });
 export type ButtonProps = {
   label: string;
   onPress: () => void;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "light";
+  icon?: keyof typeof Ionicons.glyphMap;
   loading?: boolean;
   disabled?: boolean;
   className?: string;
 } & Omit<PressableProps, "onPress" | "style" | "children" | "disabled">;
 
+/**
+ * Botón principal reutilizable de la app, con tres estilos:
+ * - "primary" (por defecto): degradado turquesa a verde, para la acción
+ *   principal de la pantalla (ej. "Iniciar sesión", "Crear cuenta").
+ * - "secondary": verde sólido, para acciones secundarias.
+ * - "light": fondo blanco con texto azul oscuro e ícono verde, para botones
+ *   sobre fondos claros (ej. tarjetas ya aclaradas dentro del cotizador).
+ *
+ * También soporta:
+ * - icon: muestra un ícono a la izquierda del texto (ej. un candado).
+ * - loading: muestra una ruedita girando en vez del texto, útil mientras
+ *   se espera la respuesta de una petición al servidor.
+ * - disabled: apaga el botón (más transparente) para que no se pueda tocar.
+ */
 export function Button({
   label,
   onPress,
   variant = "primary",
+  icon,
   loading = false,
   disabled = false,
   className = "",
   ...pressableProps
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const isLight = variant === "light";
   const content = loading ? (
-    <ActivityIndicator color="#fff" />
+    <ActivityIndicator color={isLight ? AppColors.background : "#fff"} />
   ) : (
-    <Text className="text-center font-extrabold text-white">{label}</Text>
+    <View className="flex-row items-center justify-center gap-2">
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={18}
+          color={isLight ? AppColors.green : "#fff"}
+        />
+      )}
+      <Text
+        className={`text-center font-extrabold ${isLight ? "text-brand-background" : "text-white"}`}
+      >
+        {label}
+      </Text>
+    </View>
   );
+
+  if (isLight) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={isDisabled}
+        className={`rounded-2xl bg-white p-4 ${isDisabled ? "opacity-60" : ""} ${className}`}
+        {...pressableProps}
+      >
+        {content}
+      </Pressable>
+    );
+  }
 
   if (variant === "secondary") {
     return (

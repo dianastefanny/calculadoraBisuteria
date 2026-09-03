@@ -7,6 +7,11 @@ export type LinkTextProps = {
   className?: string;
 };
 
+/**
+ * Frase con un enlace al final, como "¿No tienes cuenta? Regístrate".
+ * "label" es el texto normal y "actionLabel" es la parte que se puede tocar
+ * (se ve resaltada y ejecuta onPress al presionarla).
+ */
 export function LinkText({
   label,
   actionLabel,

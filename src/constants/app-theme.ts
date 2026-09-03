@@ -1,8 +1,12 @@
 import AppColorsRaw from './app-colors.js';
 
 /**
- * Paleta única de Cuenta Cuentas. Los valores viven en app-colors.js (CommonJS)
- * porque tailwind.config.js también los consume vía require(); este archivo
- * solo re-exporta con el nombre que ya usan las pantallas.
+ * Paleta única de colores de Cuenta Cuentas, lista para usar en cualquier
+ * pantalla o componente como AppColors.background, AppColors.turquoise, etc.
+ *
+ * Los valores reales están en app-colors.js (no en este archivo) porque
+ * tailwind.config.js también necesita leerlos para generar las clases de
+ * color de Tailwind, y ese archivo de configuración no puede leer TypeScript.
+ * Aquí solo se vuelven a exportar con el mismo nombre que ya usan las pantallas.
  */
 export const AppColors = AppColorsRaw;

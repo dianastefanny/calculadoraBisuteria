@@ -5,6 +5,11 @@ export type BrandHeaderProps = {
   className?: string;
 };
 
+/**
+ * Encabezado con el logo y el nombre "CUENTA CUENTAS". Se usa arriba del
+ * formulario de inicio de sesión (y se puede reutilizar en cualquier otra
+ * pantalla que necesite mostrar la marca).
+ */
 export function BrandHeader({
   title = "CUENTA CUENTAS",
   className = "",

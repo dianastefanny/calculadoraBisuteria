@@ -1,4 +1,5 @@
-/* This file adds the requisite utility classes for Tailwind to work. */
+/* Este archivo agrega las clases de utilidad necesarias
+   para que Tailwind CSS funcione en la aplicación. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

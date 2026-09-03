@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import {
   Pressable,
@@ -10,19 +11,31 @@ import {
 import { AppColors } from "@/constants/app-theme";
 
 export type TextFieldProps = {
-  label: string;
+  label?: string;
   value: string;
   onChangeText: (text: string) => void;
   error?: string;
   placeholder?: string;
   secureTextEntry?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
   className?: string;
   inputClassName?: string;
+  placeholderColor?: string;
 } & Omit<
   TextInputProps,
   "value" | "onChangeText" | "style" | "placeholderTextColor"
 >;
 
+/**
+ * Campo de texto reutilizable para todos los formularios de la app (correo,
+ * contraseña, nombre, etc.). Incluye:
+ * - Una etiqueta arriba (label) y, si algo está mal, un mensaje de error rojo abajo.
+ * - Un ícono opcional a la izquierda (por ejemplo, un sobre para el correo).
+ * - Si es un campo de contraseña (secureTextEntry), agrega automáticamente
+ *   un ojito a la derecha para mostrar/ocultar lo que se escribió.
+ *
+ * Ejemplo: <TextField label="Correo" value={email} onChangeText={setEmail} icon="mail-outline" />
+ */
 export function TextField({
   label,
   value,
@@ -30,35 +43,50 @@ export function TextField({
   error,
   placeholder,
   secureTextEntry = false,
+  icon,
   className = "",
   inputClassName = "",
+  placeholderColor,
   ...inputProps
 }: TextFieldProps) {
+  // Mientras "hidden" sea true, la contraseña se ve como puntos; el ojito la cambia.
   const [hidden, setHidden] = useState(secureTextEntry);
   const hasError = Boolean(error);
 
   return (
     <View className={`mb-4 ${className}`}>
-      <Text className="mb-2 font-bold text-white">{label}</Text>
+      {label && <Text className="mb-2 font-bold text-white">{label}</Text>}
       <View className="relative justify-center">
+        {icon && (
+          <View className="absolute left-3 z-10">
+            <Ionicons name={icon} size={18} color={AppColors.softText} />
+          </View>
+        )}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={AppColors.placeholder}
+          placeholderTextColor={placeholderColor ?? AppColors.placeholder}
           secureTextEntry={secureTextEntry && hidden}
-          className={`rounded-[9px] border bg-brand-input p-[13px] pr-10 text-white ${
+          className={`rounded-[9px] border bg-brand-input p-[13px] text-white ${
+            icon ? "pl-10" : ""
+          } ${secureTextEntry ? "pr-10" : ""} ${
             hasError ? "border-brand-error" : "border-brand-input-border"
           } ${inputClassName}`}
           {...inputProps}
         />
         {secureTextEntry && (
+          // Botón del ojito: alterna entre mostrar y ocultar la contraseña escrita.
           <Pressable
             onPress={() => setHidden((h) => !h)}
             className="absolute right-3"
             hitSlop={8}
           >
-            <Text className="text-white">{hidden ? "Mostrar" : "Ocultar"}</Text>
+            <Ionicons
+              name={hidden ? "eye-outline" : "eye-off-outline"}
+              size={18}
+              color={AppColors.softText}
+            />
           </Pressable>
         )}
       </View>

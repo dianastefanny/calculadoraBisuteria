@@ -16,6 +16,17 @@ export type SafeScreenProps = {
   contentContainerClassName?: string;
 };
 
+/**
+ * Envoltorio que debe usar TODA pantalla nueva de la app. Se encarga de:
+ * 1) Pintar el fondo azul de la marca y dejar el espacio correcto para que
+ *    el contenido no quede tapado por la barra de estado, el notch del
+ *    celular ni los botones de navegación del sistema.
+ * 2) Opcionalmente (con scroll={true}) permitir que la pantalla se pueda
+ *    desplazar hacia abajo cuando el contenido no cabe completo, como los
+ *    formularios largos de registro.
+ *
+ * Ejemplo de uso: <SafeScreen><Text>Contenido de la pantalla</Text></SafeScreen>
+ */
 export function SafeScreen({
   children,
   scroll = false,
