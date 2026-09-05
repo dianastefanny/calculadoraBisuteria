@@ -41,3 +41,10 @@ example
 # generated native folders
 ios/
 android/
+
+# Configuración local del asistente de IA (Claude Code): no es parte del
+# proyecto ni debe compartirse.
+.claude/
+.claudeignore
+CLAUDE.md
+AGENTS.md
