@@ -5,6 +5,7 @@ import {
   Text,
   TextInput,
   View,
+  type TextStyle,
   type TextInputProps,
 } from "react-native";
 
@@ -21,6 +22,10 @@ export type TextFieldProps = {
   className?: string;
   inputClassName?: string;
   placeholderColor?: string;
+  // Color de texto explícito (style, no className): algunos dispositivos no
+  // aplican de forma confiable un "text-*" de inputClassName por encima del
+  // "text-white" por defecto, dejando el texto invisible al escribir.
+  inputStyle?: TextStyle;
 } & Omit<
   TextInputProps,
   "value" | "onChangeText" | "style" | "placeholderTextColor"
@@ -47,6 +52,7 @@ export function TextField({
   className = "",
   inputClassName = "",
   placeholderColor,
+  inputStyle,
   ...inputProps
 }: TextFieldProps) {
   // Mientras "hidden" sea true, la contraseña se ve como puntos; el ojito la cambia.
@@ -68,6 +74,7 @@ export function TextField({
           placeholder={placeholder}
           placeholderTextColor={placeholderColor ?? AppColors.placeholder}
           secureTextEntry={secureTextEntry && hidden}
+          style={inputStyle}
           className={`rounded-[9px] border bg-brand-input p-[13px] text-white ${
             icon ? "pl-10" : ""
           } ${secureTextEntry ? "pr-10" : ""} ${

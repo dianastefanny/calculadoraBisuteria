@@ -12,7 +12,7 @@ export type FormErrorProps = {
 // Cada variante define su propio ícono y color, para no repetir esa lógica
 // dentro del componente cada vez que se dibuja.
 const VARIANT = {
-  error: { icon: "warning" as const, color: "#F97316" },
+  error: { icon: "warning" as const, color: AppColors.warning },
   success: { icon: "checkmark-circle" as const, color: AppColors.green },
 };
 
@@ -40,7 +40,7 @@ export function FormError({
       className={`mb-4 flex-row items-center gap-3 rounded-xl bg-white p-3 shadow-md shadow-black/20 ${className}`}
     >
       <Ionicons name={icon} size={22} color={color} />
-      <Text className="flex-1 text-gray-700">{message}</Text>
+      <Text className="flex-1 text-brand-background">{message}</Text>
     </View>
   );
 }

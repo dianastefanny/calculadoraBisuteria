@@ -12,11 +12,11 @@ export type TabScreenProps = {
 };
 
 /**
- * Estructura compartida por las 5 pantallas posteriores al inicio de sesión:
+ * Estructura compartida por las 6 pantallas posteriores al inicio de sesión:
  * encabezado de marca (AppHeader), contenido propio de cada pantalla y la
  * barra de navegación inferior (BottomNav) con la pestaña activa resaltada.
  *
- * Ejemplo: <TabScreen active="cotizar"><Text>Contenido</Text></TabScreen>
+ * Ejemplo: <TabScreen active="materiales"><Text>Contenido</Text></TabScreen>
  */
 export function TabScreen({ active, children, scroll = true }: TabScreenProps) {
   const insets = useSafeAreaInsets();

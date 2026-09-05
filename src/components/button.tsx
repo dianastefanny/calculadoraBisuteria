@@ -52,14 +52,14 @@ export function Button({
   const isDisabled = disabled || loading;
   const isLight = variant === "light";
   const content = loading ? (
-    <ActivityIndicator color={isLight ? AppColors.background : "#fff"} />
+    <ActivityIndicator color={isLight ? AppColors.background : AppColors.white} />
   ) : (
     <View className="flex-row items-center justify-center gap-2">
       {icon && (
         <Ionicons
           name={icon}
           size={18}
-          color={isLight ? AppColors.green : "#fff"}
+          color={isLight ? AppColors.green : AppColors.white}
         />
       )}
       <Text
@@ -107,7 +107,7 @@ export function Button({
         colors={[AppColors.turquoise, AppColors.green]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className="p-4"
+        className="rounded-[9px] p-4"
       >
         {content}
       </LinearGradient>

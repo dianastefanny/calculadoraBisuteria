@@ -21,15 +21,12 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="home" />
-        <Stack.Screen name="inventory" />
-        <Stack.Screen name="material-form" />
-        <Stack.Screen name="categories" />
-        <Stack.Screen name="cotizar" />
-        <Stack.Screen name="insumos" />
+        <Stack.Screen name="materiales" />
         <Stack.Screen name="empaques" />
+        <Stack.Screen name="disenos" />
+        <Stack.Screen name="calculos" />
         <Stack.Screen name="historial" />
-        <Stack.Screen name="perfil" />
+        <Stack.Screen name="configuraciones" />
       </Stack>
     </>
   );

@@ -1,55 +1,36 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import {
-  Dimensions,
-  Image,
-  Modal,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, Image, Modal, Pressable, Text, View } from "react-native";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AppColors } from "@/constants/app-theme";
+import {
+  CURRENCY_OPTIONS,
+  setCurrency,
+  useCurrency,
+} from "@/constants/currency-store";
 
 export type AppHeaderProps = {
   className?: string;
 };
 
-type CurrencyCode = "COP" | "USD" | "EUR";
-
-// TODO (backend Laravel): sincronizar la moneda seleccionada con la
-// preferencia real del usuario en el servidor.
-const CURRENCY_OPTIONS: {
-  code: CurrencyCode;
-  trigger: string;
-  label: string;
-}[] = [
-  { code: "COP", trigger: "COP$", label: "PESOS (COP)" },
-  { code: "USD", trigger: "USD$", label: "DÓLAR (USD)" },
-  { code: "EUR", trigger: "EUR€", label: "EURO (€)" },
-];
-
 /**
  * Encabezado compartido por todas las pantallas posteriores al inicio de
- * sesión (Cotizar, Insumos, Empaques, Historial, Perfil): logo pequeño,
+ * sesión (Materiales, Empaques, Diseños, Cálculos, Historial,
+ * Configuraciones): logo pequeño,
  * selector de moneda y botón para cerrar sesión (con su propio diálogo de
  * confirmación, igual al que usaba home.tsx).
  */
 export function AppHeader({ className = "" }: AppHeaderProps) {
   const [confirmingLogout, setConfirmingLogout] = useState(false);
-  const [currency, setCurrency] = useState<CurrencyCode>("COP");
+  const currentCurrency = useCurrency();
   const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false);
   // Posición del menú de moneda, calculada a partir del botón real (ver
   // openCurrencyMenu) para que el menú aparezca siempre justo debajo de él,
   // sin depender de posicionamiento "absolute" anidado.
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const currencyTriggerRef = useRef<View>(null);
-
-  const currentCurrency =
-    CURRENCY_OPTIONS.find((option) => option.code === currency) ??
-    CURRENCY_OPTIONS[0];
 
   const openCurrencyMenu = () => {
     currencyTriggerRef.current?.measureInWindow((x, y, width, height) => {
@@ -77,7 +58,7 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
       <View className="items-center">
         <Image
           source={require("@/assets/images/logo-cc.png")}
-          style={{ width: 70, height: 70 }}
+          style={{ width: 90, height: 90 }}
           resizeMode="contain"
         />
         <Text className="text-[12px] font-extrabold tracking-wide text-brand-turquoise">
@@ -144,7 +125,7 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
                   setCurrencyMenuOpen(false);
                 }}
                 className={`px-4 py-3 ${
-                  option.code === currency ? "bg-brand-input" : ""
+                  option.code === currentCurrency.code ? "bg-brand-input" : ""
                 }`}
               >
                 <Text className="text-xs font-bold text-brand-background">

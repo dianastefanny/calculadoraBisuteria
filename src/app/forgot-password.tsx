@@ -9,22 +9,28 @@ import { SafeScreen } from "@/components/safe-screen";
 import { TextField } from "@/components/text-field";
 import { DEMO_EMAIL, DEMO_NAME } from "@/constants/demo-auth";
 
+type Step = "email" | "code" | "reset";
+
 /**
- * Recuperación de contraseña, en dos pasos dentro de la misma pantalla:
+ * Recuperación de contraseña, en tres pasos dentro de la misma pantalla:
  *
  * Paso 1 — Buscar cuenta: el usuario escribe su correo y se verifica si
  * existe (por ahora, comparándolo con el correo de prueba DEMO_EMAIL).
  *
- * Paso 2 — Nueva contraseña: si la cuenta existe, se muestran los campos
- * para escribir y confirmar la nueva contraseña. Al guardar, se regresa al
- * login con un aviso de que ya puede entrar con la contraseña nueva.
+ * Paso 2 — Verificar código: se simula el envío de un código al correo
+ * (DEMO_RECOVERY_CODE) y el usuario debe introducirlo para continuar.
  *
- * "found" (encontrada) es la variable que decide en cuál de los dos pasos
- * está la pantalla en cada momento.
+ * Paso 3 — Nueva contraseña: si el código es correcto, se muestran los
+ * campos para escribir y confirmar la nueva contraseña. Al guardar, se
+ * regresa al login con un aviso de que ya puede entrar con la contraseña
+ * nueva.
+ *
+ * "step" decide en cuál de los tres pasos está la pantalla en cada momento.
  */
 export default function ForgotPassword() {
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [found, setFound] = useState(false);
+  const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,16 +49,37 @@ export default function ForgotPassword() {
     // usando el cliente ya preparado en src/api/client.js, por ejemplo:
     //   import { findAccountByEmail } from "@/api/client";
     //   const data = await findAccountByEmail({ ...datosQueDefinaLaravel });
+    //   // El backend es quien debe enviar el código real al correo.
     if (email.trim().toLowerCase() !== DEMO_EMAIL) {
       setError("No encontramos ninguna cuenta con ese correo.");
       return;
     }
 
     setError(null);
-    setFound(true); // Avanza al paso 2 (nueva contraseña).
+    setStep("code"); // Avanza al paso 2 (verificar código).
   };
 
-  // Paso 2: se ejecuta al tocar "Guardar Nueva Contraseña".
+  // Paso 2: se ejecuta al tocar "Verificar código".
+  const verifyCode = () => {
+    if (!code.trim()) {
+      setError("Ingresa el código que enviamos a tu correo.");
+      return;
+    }
+
+    // Todavía no hay backend real que genere, envíe y verifique el código, así
+    // que por ahora solo se valida que se haya escrito algo.
+    //
+    // TODO (backend Laravel): reemplazar esta validación por una llamada real
+    // usando el cliente ya preparado en src/api/client.js, por ejemplo:
+    //   import { verifyRecoveryCode } from "@/api/client";
+    //   const data = await verifyRecoveryCode({ ...datosQueDefinaLaravel });
+    //   // Si el código no es correcto, el backend debe indicarlo aquí.
+
+    setError(null);
+    setStep("reset"); // Avanza al paso 3 (nueva contraseña).
+  };
+
+  // Paso 3: se ejecuta al tocar "Guardar Nueva Contraseña".
   const save = () => {
     if (!newPassword || !confirmPassword) {
       setError("Completa los dos campos de contraseña.");
@@ -77,26 +104,34 @@ export default function ForgotPassword() {
     });
   };
 
+  const titles: Record<Step, string> = {
+    email: "Recuperar contraseña",
+    code: "Verificar código",
+    reset: "Nueva contraseña",
+  };
+
+  const subtitles: Record<Step, string> = {
+    email: "Ingresa tu correo y verificaremos tu cuenta.",
+    code: "Ingresa el código de 6 dígitos que enviamos a tu correo.",
+    reset: "Define una nueva contraseña para tu cuenta.",
+  };
+
   return (
     <SafeScreen scroll>
       <Text className="text-[29px] font-extrabold text-white">
-        Recuperar contraseña
+        {titles[step]}
       </Text>
-      <Text className="mb-7 mt-2 text-brand-soft-text">
-        {found
-          ? "Define una nueva contraseña para tu cuenta."
-          : "Ingresa tu correo y verificaremos tu cuenta."}
-      </Text>
+      <Text className="mb-7 mt-2 text-brand-green">{subtitles[step]}</Text>
 
       <FormError message={error} />
-      {found && !error && (
+      {step === "code" && !error && (
         <FormError
           variant="success"
-          message={`¡Cuenta encontrada! ${DEMO_NAME}. Ingresa tu nueva contraseña a continuación`}
+          message={`¡Cuenta encontrada! ${DEMO_NAME}. Revisa tu correo e ingresa el código a continuación.`}
         />
       )}
 
-      {/* Una vez encontrada la cuenta, el correo queda fijo (editable={!found}) para que no se pueda cambiar en este paso. */}
+      {/* Una vez que se avanza de paso, el correo queda fijo (editable solo en el paso 1). */}
       <TextField
         label="Correo electrónico"
         value={email}
@@ -104,10 +139,32 @@ export default function ForgotPassword() {
         placeholder="ejemplo@correo.com"
         autoCapitalize="none"
         icon="mail-outline"
-        editable={!found}
+        editable={step === "email"}
       />
 
-      {found && (
+      {step === "email" && (
+        <Button label="Buscar cuenta" onPress={search} className="mt-1" />
+      )}
+
+      {step === "code" && (
+        <>
+          <TextField
+            label="Código de verificación"
+            value={code}
+            onChangeText={setCode}
+            placeholder=""
+            keyboardType="number-pad"
+          />
+          <Button
+            label="Verificar código"
+            icon="checkmark-circle-outline"
+            onPress={verifyCode}
+            className="mt-1"
+          />
+        </>
+      )}
+
+      {step === "reset" && (
         <>
           <TextField
             label="Nueva contraseña"
@@ -125,19 +182,13 @@ export default function ForgotPassword() {
             secureTextEntry
             icon="lock-closed-outline"
           />
+          <Button
+            label="Guardar Nueva Contraseña"
+            icon="shield-checkmark-outline"
+            onPress={save}
+            className="mt-1"
+          />
         </>
-      )}
-
-      {/* El botón cambia según el paso en el que esté la pantalla. */}
-      {found ? (
-        <Button
-          label="Guardar Nueva Contraseña"
-          icon="shield-checkmark-outline"
-          onPress={save}
-          className="mt-1"
-        />
-      ) : (
-        <Button label="Buscar cuenta" onPress={search} className="mt-1" />
       )}
 
       <LinkText

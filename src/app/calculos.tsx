@@ -2,13 +2,15 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { DEMO_PACKAGING_OPTIONS } from "@/app/empaques";
-import { DEMO_MATERIALS } from "@/app/insumos";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { SelectField } from "@/components/select-field";
 import { TabScreen } from "@/components/tab-screen";
 import { TextField } from "@/components/text-field";
 import { AppColors } from "@/constants/app-theme";
+import { useCurrency } from "@/constants/currency-store";
+import { formatMaterialDetail, useMaterials } from "@/constants/demo-materials";
+import { usePackagingOptions } from "@/constants/demo-packaging";
 
 type SectionProps = {
   step: number;
@@ -67,13 +69,15 @@ function splitElapsedTime(totalSeconds: number) {
  * conectarán más adelante al backend de Laravel.
  */
 export default function Cotizar() {
+  const materials = useMaterials();
+  const packagingOptions = usePackagingOptions();
+  const currency = useCurrency();
   const [pieceName, setPieceName] = useState("");
   const [multiSelectOpen, setMultiSelectOpen] = useState(false);
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [individualMaterialId, setIndividualMaterialId] = useState<
     string | null
   >(null);
-  const [individualMenuOpen, setIndividualMenuOpen] = useState(false);
   const [selectedMaterialQty, setSelectedMaterialQty] = useState("");
   const [selectedPackagingId, setSelectedPackagingId] = useState<string | null>(
     null,
@@ -113,14 +117,11 @@ export default function Cotizar() {
     );
   };
 
-  const individualMaterial = DEMO_MATERIALS.find(
-    (material) => material.id === individualMaterialId,
-  );
-
-  const selectIndividualMaterial = (id: string) => {
-    setIndividualMaterialId(id);
-    setIndividualMenuOpen(false);
-  };
+  const individualMaterialOptions = materials.map((material) => ({
+    id: material.id,
+    label: material.name,
+    sublabel: formatMaterialDetail(material, currency.symbol),
+  }));
 
   const addExtraMinutes = () => {
     const minutesToAdd = parseInt(extraMinutes, 10);
@@ -131,7 +132,7 @@ export default function Cotizar() {
   };
 
   return (
-    <TabScreen active="cotizar">
+    <TabScreen active="calculos">
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="calculator-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
@@ -150,8 +151,6 @@ export default function Cotizar() {
           step={1}
           title="Nombre de la pieza"
           className="mb-0"
-          circleClassName="bg-brand-navy"
-          circleTextClassName="text-sm text-brand-green"
         >
           <Text className="mb-3 text-brand-soft-text">
             Nombre de la pieza de bisutería
@@ -160,8 +159,10 @@ export default function Cotizar() {
             value={pieceName}
             onChangeText={setPieceName}
             placeholder="Ej: Aretes Mandala..."
-            inputClassName="border-gray-200 bg-white text-gray-800"
-            placeholderColor="#9CA3AF"
+            inputClassName="border-brand-background/20 bg-white"
+            inputStyle={{ color: AppColors.background }}
+            placeholderColor={AppColors.backgroundMuted}
+            autoCorrect={false}
           />
         </Section>
       </Card>
@@ -172,13 +173,10 @@ export default function Cotizar() {
           step={2}
           title="Materiales / Componentes"
           className="mb-0"
-          circleClassName="bg-brand-navy"
-          circleTextClassName="text-sm text-brand-green"
           right={
             <Button
               label="Crear Nuevo Material"
               icon="add"
-              variant="light"
               onPress={() => {}}
               className="px-3 py-2"
             />
@@ -200,7 +198,7 @@ export default function Cotizar() {
                 <Text className="text-[15px] font-extrabold text-brand-background">
                   Seleccionar varios materiales a la vez
                 </Text>
-                <Text className="mt-1 text-gray-500">
+                <Text className="mt-1 text-brand-background/55">
                   Añade múltiples insumos y asigna cantidades juntas
                 </Text>
               </View>
@@ -213,15 +211,15 @@ export default function Cotizar() {
 
             {multiSelectOpen && (
               <View className="mt-3 gap-2">
-                {/* TODO (backend Laravel): reemplazar DEMO_MATERIALS por los
-                    materiales reales del usuario (fetchMaterials en src/api/client.js). */}
-                {DEMO_MATERIALS.map((material) => {
+                {/* TODO (backend Laravel): reemplazar por los materiales
+                    reales del usuario (fetchMaterials en src/api/client.js). */}
+                {materials.map((material) => {
                   const isSelected = selectedMaterialIds.includes(material.id);
                   return (
                     <Pressable
                       key={material.id}
                       onPress={() => toggleMaterialSelected(material.id)}
-                      className="flex-row items-center gap-3 rounded-[9px] border border-gray-200 bg-white p-3"
+                      className="flex-row items-center gap-3 rounded-[9px] border border-brand-background/20 bg-white p-3"
                     >
                       <Ionicons
                         name={isSelected ? "checkbox" : "checkbox-outline"}
@@ -232,8 +230,8 @@ export default function Cotizar() {
                         <Text className="font-bold text-brand-background">
                           {material.name}
                         </Text>
-                        <Text className="text-xs text-gray-500">
-                          {material.detail}
+                        <Text className="text-xs text-brand-background/55">
+                          {formatMaterialDetail(material, currency.symbol)}
                         </Text>
                       </View>
                     </Pressable>
@@ -255,55 +253,18 @@ export default function Cotizar() {
             <Ionicons name="arrow-back" size={12} color={AppColors.softText} />
           </View>
 
-          {/* TODO (backend Laravel): reemplazar por un selector real con la
-              lista de materiales del usuario (fetchMaterials). */}
+          {/* TODO (backend Laravel): reemplazar por los materiales reales
+              del usuario (fetchMaterials en src/api/client.js). */}
           <Card className="mb-3 bg-white/20">
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <View style={{ flex: 1, marginRight: 12 }}>
-                <Text className="mb-2 font-bold text-brand-background">
-                  Seleccionar material
-                </Text>
-                <Pressable
-                  onPress={() => setIndividualMenuOpen((open) => !open)}
-                  className="flex-row items-center justify-between rounded-[9px] border border-gray-200 bg-white p-[13px]"
-                >
-                  <Text
-                    className={
-                      individualMaterial ? "text-gray-800" : "text-gray-400"
-                    }
-                    numberOfLines={1}
-                  >
-                    {individualMaterial
-                      ? individualMaterial.name
-                      : "Seleccionar..."}
-                  </Text>
-                  <Ionicons
-                    name={individualMenuOpen ? "chevron-up" : "chevron-down"}
-                    size={16}
-                    color="#9CA3AF"
-                  />
-                </Pressable>
-
-                {individualMenuOpen && (
-                  <View className="mt-2 gap-2">
-                    {/* TODO (backend Laravel): reemplazar DEMO_MATERIALS por
-                        los materiales reales del usuario (fetchMaterials). */}
-                    {DEMO_MATERIALS.map((material) => (
-                      <Pressable
-                        key={material.id}
-                        onPress={() => selectIndividualMaterial(material.id)}
-                        className="rounded-[9px] border border-gray-200 bg-white p-3"
-                      >
-                        <Text className="font-bold text-brand-background">
-                          {material.name}
-                        </Text>
-                        <Text className="text-xs text-gray-500">
-                          {material.detail}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
+                <SelectField
+                  label="Seleccionar material"
+                  value={individualMaterialId}
+                  placeholder="Seleccionar..."
+                  options={individualMaterialOptions}
+                  onSelect={setIndividualMaterialId}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text className="mb-2 font-bold text-brand-background">
@@ -314,8 +275,9 @@ export default function Cotizar() {
                   onChangeText={setSelectedMaterialQty}
                   keyboardType="numeric"
                   placeholder="0"
-                  inputClassName="border-gray-200 bg-white text-gray-800"
-                  placeholderColor="#9CA3AF"
+                  inputClassName="border-brand-background/20 bg-white"
+                  inputStyle={{ color: AppColors.background }}
+                  placeholderColor={AppColors.backgroundMuted}
                   className="mb-0"
                 />
               </View>
@@ -323,7 +285,6 @@ export default function Cotizar() {
             <Button
               label="Agregar"
               icon="add"
-              variant="light"
               onPress={() => {}}
               className="mt-3 self-end px-4 py-3"
             />
@@ -345,7 +306,6 @@ export default function Cotizar() {
         <Button
           label="Clases de Empaques"
           icon="gift-outline"
-          variant="secondary"
           onPress={() => {}}
           className="mb-3"
         />
@@ -357,7 +317,7 @@ export default function Cotizar() {
           Tus Clases de Empaque Guardadas:
         </Text>
         <View className="flex-row flex-wrap gap-3">
-          {DEMO_PACKAGING_OPTIONS.map((option) => {
+          {packagingOptions.map((option) => {
             const isSelected = option.id === selectedPackagingId;
             return (
               <Pressable
@@ -381,7 +341,10 @@ export default function Cotizar() {
                       {option.name}
                     </Text>
                   </View>
-                  <Text className="text-brand-turquoise">{option.cost}</Text>
+                  <Text className="text-brand-turquoise">
+                    {currency.symbol}
+                    {option.unitCost}
+                  </Text>
                 </Card>
               </Pressable>
             );
@@ -432,7 +395,6 @@ export default function Cotizar() {
             />
             <Button
               label="Reset"
-              variant="secondary"
               onPress={resetTimer}
               className="flex-1"
             />
@@ -448,11 +410,7 @@ export default function Cotizar() {
             placeholder="0"
             className="mb-0 flex-1"
           />
-          <Button
-            label="+ Agregar"
-            variant="secondary"
-            onPress={addExtraMinutes}
-          />
+          <Button label="+ Agregar" onPress={addExtraMinutes} />
         </View>
 
         <TextField
@@ -486,7 +444,7 @@ export default function Cotizar() {
         {/* TODO (backend Laravel): reemplazar por el cálculo real cuando
             existan materiales, empaque y tiempo cargados. */}
         <Card className="flex-row items-center gap-3">
-          <Ionicons name="information-circle" size={22} color="#F97316" />
+          <Ionicons name="information-circle" size={22} color={AppColors.warning} />
           <Text className="flex-1 text-brand-soft-text">
             Agrega materiales, empaque o cronometra tiempo para habilitar el
             cálculo.

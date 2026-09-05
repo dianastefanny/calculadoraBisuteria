@@ -17,7 +17,7 @@ export default function Historial() {
   return (
     <TabScreen active="historial">
       <Text className="mb-1 text-xl font-extrabold text-white">Historial</Text>
-      <Text className="mb-6 text-brand-soft-text">
+      <Text className="mb-6 text-brand-green">
         Piezas que has cotizado anteriormente
       </Text>
 

@@ -48,18 +48,18 @@ export function ConfirmDialog({
         className="flex-1 items-center justify-center bg-black/50 p-6"
       >
         <Pressable className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-md shadow-black/20">
-          <Text className="text-lg font-extrabold text-gray-800">
+          <Text className="text-lg font-extrabold text-brand-background">
             {title}
           </Text>
-          <Text className="mt-2 text-gray-600">{message}</Text>
+          <Text className="mt-2 text-brand-background/55">{message}</Text>
 
           <View className="mt-5 flex-row justify-end gap-4">
             <Pressable onPress={onCancel} hitSlop={8}>
-              <Text className="font-bold text-gray-500">{cancelLabel}</Text>
+              <Text className="font-bold text-brand-background/55">{cancelLabel}</Text>
             </Pressable>
             <Pressable onPress={onConfirm} hitSlop={8}>
               <Text
-                className={`font-bold ${destructive ? "text-red-500" : "text-brand-green"}`}
+                className={`font-bold ${destructive ? "text-brand-error" : "text-brand-green"}`}
               >
                 {confirmLabel}
               </Text>

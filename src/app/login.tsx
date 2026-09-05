@@ -48,7 +48,7 @@ export default function Login() {
       password === DEMO_PASSWORD
     ) {
       setError(null);
-      router.replace("/cotizar");
+      router.replace("/materiales");
     } else {
       setError("El correo electrónico o la contraseña no son correctos.");
     }
@@ -60,7 +60,7 @@ export default function Login() {
       <Text className="text-2xl font-extrabold text-white">
         Inicio de sesión
       </Text>
-      <Text className="mb-6 mt-2 text-brand-soft-text">
+      <Text className="mb-6 mt-2 text-brand-green">
         Ingresa tus credenciales para continuar
       </Text>
 

@@ -10,6 +10,7 @@ import { TextField } from "@/components/text-field";
 
 // Reglas de validación del formulario de registro.
 const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]+$/;
+const PHONE_REGEX = /^[0-9+\-\s()]{7,15}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número
 // y un carácter especial (el texto de ayuda debajo del campo explica esto mismo al usuario).
@@ -24,6 +25,9 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}
 export default function Register() {
   // Lo que el usuario va escribiendo en cada campo del formulario.
   const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  // Teléfono es opcional, por eso no entra en la validación de campos obligatorios.
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -32,32 +36,38 @@ export default function Register() {
 
   // Se ejecuta al tocar el botón "Crear cuenta".
   const submit = () => {
-    // Paso 1: todos los campos son obligatorios.
-    if (!name.trim() || !email.trim() || !password || !confirm) {
+    // Paso 1: todos los campos son obligatorios, excepto el teléfono.
+    if (!name.trim() || !lastName.trim() || !email.trim() || !password || !confirm) {
       setError("Por favor, completa todos los campos.");
       return;
     }
 
-    // Paso 2: el nombre solo puede tener letras, espacios, tildes y ñ.
-    if (!NAME_REGEX.test(name.trim())) {
-      setError("El nombre solo puede contener letras y espacios.");
+    // Paso 2: el nombre y el apellido solo pueden tener letras, espacios, tildes y ñ.
+    if (!NAME_REGEX.test(name.trim()) || !NAME_REGEX.test(lastName.trim())) {
+      setError("El nombre y el apellido solo pueden contener letras y espacios.");
       return;
     }
 
-    // Paso 3: el correo debe tener un formato válido (algo@algo.algo).
+    // Paso 3: si se escribió un teléfono, debe tener un formato válido.
+    if (phone.trim() && !PHONE_REGEX.test(phone.trim())) {
+      setError("Ingresa un número de teléfono válido.");
+      return;
+    }
+
+    // Paso 4: el correo debe tener un formato válido (algo@algo.algo).
     if (!EMAIL_REGEX.test(email.trim())) {
       setError("Ingresa un correo electrónico válido.");
       return;
     }
 
-    // Paso 4: la contraseña debe cumplir los requisitos de seguridad
+    // Paso 5: la contraseña debe cumplir los requisitos de seguridad
     // (el texto de ayuda debajo del campo se los explica al usuario).
     if (!PASSWORD_REGEX.test(password)) {
       setError("La contraseña no cumple los requisitos indicados abajo.");
       return;
     }
 
-    // Paso 5: las dos contraseñas escritas deben ser iguales.
+    // Paso 6: las dos contraseñas escritas deben ser iguales.
     if (password !== confirm) {
       setError("Las contraseñas ingresadas no coinciden.");
       return;
@@ -80,7 +90,7 @@ export default function Register() {
   return (
     <SafeScreen scroll>
       <Text className="text-[30px] font-extrabold text-white">Registro</Text>
-      <Text className="mb-6 mt-2 text-brand-soft-text">
+      <Text className="mb-6 mt-2 text-brand-green">
         Regístrate para comenzar a utilizar Cuenta Cuentas
       </Text>
 
@@ -92,6 +102,23 @@ export default function Register() {
         onChangeText={setName}
         placeholder="Tu nombre"
         icon="person-outline"
+      />
+
+      <TextField
+        label="Apellido"
+        value={lastName}
+        onChangeText={setLastName}
+        placeholder="Tu apellido"
+        icon="person-outline"
+      />
+
+      <TextField
+        label="Teléfono (opcional)"
+        value={phone}
+        onChangeText={setPhone}
+        placeholder="Ej. 3001234567"
+        keyboardType="phone-pad"
+        icon="call-outline"
       />
 
       <TextField
