@@ -1,5 +1,7 @@
 import { Modal, Pressable, Text, View } from "react-native";
 
+import { CANVAS_BG, INK_TEXT, MUTED_TEXT } from "@/constants/app-theme";
+
 export type ConfirmDialogProps = {
   visible: boolean;
   title: string;
@@ -47,15 +49,17 @@ export function ConfirmDialog({
         onPress={onCancel}
         className="flex-1 items-center justify-center bg-black/50 p-6"
       >
-        <Pressable className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-md shadow-black/20">
-          <Text className="text-lg font-extrabold text-brand-background">
+        <Pressable
+          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
+        >
+          <Text className={`text-lg font-extrabold ${INK_TEXT}`}>
             {title}
           </Text>
-          <Text className="mt-2 text-brand-background/55">{message}</Text>
+          <Text className={`mt-2 ${MUTED_TEXT}`}>{message}</Text>
 
           <View className="mt-5 flex-row justify-end gap-4">
             <Pressable onPress={onCancel} hitSlop={8}>
-              <Text className="font-bold text-brand-background/55">{cancelLabel}</Text>
+              <Text className={`font-bold ${MUTED_TEXT}`}>{cancelLabel}</Text>
             </Pressable>
             <Pressable onPress={onConfirm} hitSlop={8}>
               <Text

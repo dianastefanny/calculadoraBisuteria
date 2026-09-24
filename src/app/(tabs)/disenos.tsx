@@ -1,47 +1,76 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
+import {
+  deleteDesign as deleteDesignApi,
+  fetchDesigns,
+  getErrorMessage,
+  getUnitLabel,
+} from "@/api/client";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { DesignFormModal } from "@/components/design-form-modal";
+import { DesignFormModal, type ApiDesign } from "@/components/design-form-modal";
+import { FormError } from "@/components/form-error";
 import { TabScreen } from "@/components/tab-screen";
-import { AppColors } from "@/constants/app-theme";
-import { deleteDesign, useDesigns, type Design } from "@/constants/demo-designs";
-import { useMaterials } from "@/constants/demo-materials";
+import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
 
 /**
  * Pestaña Diseños: se crean diseños de piezas indicando qué materiales usan
  * y en qué cantidad, para que más adelante Cálculos les sume el tiempo de
- * mano de obra y otros costos.
+ * mano de obra y otros costos. Conectada al backend real
+ * (GET/DELETE /designs).
  *
  * "+ Nuevo diseño" y el lápiz de cada tarjeta abren el mismo
  * DesignFormModal (sin diseño = crear, con diseño = editar); el bote de
  * basura pide confirmación (ConfirmDialog) antes de eliminar — mismo patrón
- * que Materiales y Empaques. Los datos viven en
- * src/constants/demo-designs.ts mientras no hay backend, ver el TODO ahí
- * para la conexión futura con Laravel.
+ * que Materiales y Empaques.
  */
 export default function Disenos() {
-  const designs = useDesigns();
-  const materials = useMaterials();
+  const theme = useThemeColors();
+  const [designs, setDesigns] = useState<ApiDesign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formVisible, setFormVisible] = useState(false);
-  const [editingDesign, setEditingDesign] = useState<Design | null>(null);
-  const [deletingDesign, setDeletingDesign] = useState<Design | null>(null);
+  const [editingDesign, setEditingDesign] = useState<ApiDesign | null>(null);
+  const [deletingDesign, setDeletingDesign] = useState<ApiDesign | null>(null);
+
+  const loadDesigns = useCallback(async () => {
+    setLoading(true);
+    try {
+      setDesigns(await fetchDesigns());
+      setError(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadDesigns();
+  }, [loadDesigns]);
 
   const openCreate = () => {
     setEditingDesign(null);
     setFormVisible(true);
   };
 
-  const openEdit = (design: Design) => {
+  const openEdit = (design: ApiDesign) => {
     setEditingDesign(design);
     setFormVisible(true);
   };
 
-  const confirmDelete = () => {
-    if (deletingDesign) deleteDesign(deletingDesign.id);
+  const confirmDelete = async () => {
+    if (deletingDesign) {
+      try {
+        await deleteDesignApi(deletingDesign.id);
+        await loadDesigns();
+      } catch (err) {
+        setError(getErrorMessage(err));
+      }
+    }
     setDeletingDesign(null);
   };
 
@@ -50,7 +79,7 @@ export default function Disenos() {
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="sparkles-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
-          <Text className="text-xl font-extrabold text-white">Diseños</Text>
+          <Text className={`text-xl font-extrabold ${INK_TEXT}`}>Diseños</Text>
           <Text className="text-brand-green">
             Guarda y consulta los diseños de tus piezas
           </Text>
@@ -59,9 +88,15 @@ export default function Disenos() {
 
       <Button label="+ Nuevo diseño" onPress={openCreate} className="mb-4" />
 
-      {designs.length === 0 && (
+      <FormError message={error} />
+
+      {loading && (
+        <Text className={`mb-3 text-center ${MUTED_TEXT}`}>Cargando diseños...</Text>
+      )}
+
+      {!loading && designs.length === 0 && !error && (
         <Card className="mb-3">
-          <Text className="text-center text-brand-soft-text">
+          <Text className={`text-center ${MUTED_TEXT}`}>
             Aún no has creado ningún diseño.
           </Text>
         </Card>
@@ -70,7 +105,7 @@ export default function Disenos() {
       {designs.map((design) => (
         <Card key={design.id} className="mb-3">
           <View className="flex-row items-start justify-between gap-2">
-            <Text className="flex-1 text-[17px] font-extrabold text-white">
+            <Text className={`flex-1 text-[17px] font-extrabold ${INK_TEXT}`}>
               {design.name}
             </Text>
             <Pressable
@@ -78,39 +113,31 @@ export default function Disenos() {
               hitSlop={8}
               className="ml-1"
             >
-              <Ionicons name="pencil" size={16} color={AppColors.softText} />
+              <Ionicons name="pencil" size={16} color={theme.mutedInk} />
             </Pressable>
             <Pressable
               onPress={() => setDeletingDesign(design)}
               hitSlop={8}
               className="ml-2"
             >
-              <Ionicons name="trash" size={16} color={AppColors.softText} />
+              <Ionicons name="trash" size={16} color={theme.mutedInk} />
             </Pressable>
           </View>
 
           {!!design.description && (
-            <Text className="mt-1 text-brand-soft-text">
+            <Text className={`mt-1 ${MUTED_TEXT}`}>
               {design.description}
             </Text>
           )}
 
           {design.materials.length > 0 && (
             <View className="mt-3 gap-1">
-              {design.materials.map((item) => {
-                const material = materials.find(
-                  (m) => m.id === item.materialId,
-                );
-                return (
-                  <Text
-                    key={item.materialId}
-                    className="text-xs text-brand-soft-text"
-                  >
-                    • {material?.name ?? "Material eliminado"} — {item.quantity}{" "}
-                    {material?.unit ?? ""}
-                  </Text>
-                );
-              })}
+              {design.materials.map((item) => (
+                <Text key={item.materialId} className={`text-sm ${MUTED_TEXT}`}>
+                  • {item.materialName || "Material eliminado"} — {item.quantity}{" "}
+                  {getUnitLabel(item.materialUnit)}
+                </Text>
+              ))}
             </View>
           )}
         </Card>
@@ -120,6 +147,7 @@ export default function Disenos() {
         visible={formVisible}
         design={editingDesign}
         onClose={() => setFormVisible(false)}
+        onSaved={loadDesigns}
       />
 
       <ConfirmDialog

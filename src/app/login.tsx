@@ -1,20 +1,20 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import { Text } from "react-native";
 
+import { fetchConfiguration, getErrorMessage, loginUser } from "@/api/client";
 import { BrandHeader } from "@/components/brand-header";
 import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
 import { LinkText } from "@/components/link-text";
 import { SafeScreen } from "@/components/safe-screen";
 import { TextField } from "@/components/text-field";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/constants/demo-auth";
+import { INK_TEXT } from "@/constants/app-theme";
+import { setCurrency } from "@/constants/currency-store";
 
 /**
- * Pantalla de inicio de sesión. Por ahora las credenciales se comparan
- * contra un usuario de prueba (DEMO_EMAIL/DEMO_PASSWORD) porque todavía no
- * hay conexión con el backend de Laravel; cuando exista, esta comparación se
- * reemplaza por una petición real al servidor.
+ * Pantalla de inicio de sesión, conectada al backend de Laravel.
  */
 export default function Login() {
   // "notice" es un mensaje opcional que llega desde otra pantalla (por
@@ -27,37 +27,53 @@ export default function Login() {
   const [password, setPassword] = useState("");
   // Mensaje de error a mostrar arriba del formulario (null = sin error).
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { setColorScheme } = useColorScheme();
 
-  // Se ejecuta al tocar el botón "Iniciar sesión y valida el formulario".
-  const submit = () => {
+  // Se ejecuta al tocar el botón "Iniciar sesión" y valida el formulario.
+  const submit = async () => {
     // Paso 1: no dejar enviar el formulario con campos vacíos.
     if (!email.trim() || !password) {
       setError("Por favor, ingresa tu correo electrónico y contraseña.");
       return;
     }
 
-    // Paso 2: comparar contra el usuario de prueba y avanzar al menú principal si coincide.
-    //
-    // TODO (backend Laravel): reemplazar esta comparación local por una
-    // llamada real usando el cliente ya preparado en src/api/client.js, por ejemplo:
-    //   import { loginUser } from "@/api/client";
-    //   const data = await loginUser({ ...datosQueDefinaLaravel });
-    //   // loginUser ya deja preparado el guardado del token con expo-secure-store.
-    if (
-      email.trim().toLowerCase() === DEMO_EMAIL &&
-      password === DEMO_PASSWORD
-    ) {
-      setError(null);
-      router.replace("/materiales");
-    } else {
-      setError("El correo electrónico o la contraseña no son correctos.");
+    setError(null);
+    setSubmitting(true);
+    try {
+      await loginUser({ email: email.trim(), password });
+
+      // Aplica el modo claro/oscuro y la moneda que el usuario dejó
+      // guardados en su cuenta la última vez. Si falla, no bloquea el
+      // inicio de sesión — simplemente se queda con lo que ya estaba activo.
+      try {
+        const configuration = await fetchConfiguration();
+        if (configuration.theme === "dark" || configuration.theme === "light") {
+          setColorScheme(configuration.theme);
+        }
+        if (
+          configuration.currency === "COP" ||
+          configuration.currency === "USD" ||
+          configuration.currency === "EUR"
+        ) {
+          setCurrency(configuration.currency);
+        }
+      } catch {
+        // Ignorar: el tema y la moneda no son críticos para poder entrar a la app.
+      }
+
+      router.replace("/inicio");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <SafeScreen scroll contentContainerClassName="flex-grow justify-center">
       <BrandHeader />
-      <Text className="text-2xl font-extrabold text-white">
+      <Text className={`text-2xl font-extrabold ${INK_TEXT}`}>
         Inicio de sesión
       </Text>
       <Text className="mb-6 mt-2 text-brand-green">
@@ -93,7 +109,11 @@ export default function Login() {
         ¿Olvidaste tu contraseña?
       </Text>
 
-      <Button label="Iniciar sesión →" onPress={submit} />
+      <Button
+        label="Iniciar sesión →"
+        onPress={submit}
+        loading={submitting}
+      />
 
       <LinkText
         label="¿No tienes cuenta?"

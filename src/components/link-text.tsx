@@ -1,5 +1,7 @@
 import { Text } from "react-native";
 
+import { MUTED_TEXT } from "@/constants/app-theme";
+
 export type LinkTextProps = {
   label: string;
   actionLabel: string;
@@ -19,7 +21,7 @@ export function LinkText({
   className = "",
 }: LinkTextProps) {
   return (
-    <Text className={`text-center text-brand-soft-text ${className}`}>
+    <Text className={`text-center ${MUTED_TEXT} ${className}`}>
       {label}{" "}
       <Text
         onPress={onPress}

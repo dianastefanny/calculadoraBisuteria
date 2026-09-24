@@ -1,8 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
-import { AppColors } from "@/constants/app-theme";
+import {
+  CANVAS_BG,
+  FIELD_TINT_BG,
+  FIELD_TINT_BORDER,
+  INK_TEXT,
+  MUTED_TEXT,
+  useThemeColors,
+} from "@/constants/app-theme";
 
 export type SelectFieldOption = {
   id: string;
@@ -17,6 +24,10 @@ export type SelectFieldProps = {
   options: SelectFieldOption[];
   onSelect: (id: string) => void;
   className?: string;
+  // Reemplaza el recuadro por defecto por un disparador propio (por ejemplo,
+  // el botón degradado de Button); recibe "open" para abrir el mismo modal
+  // de opciones que usa el recuadro por defecto.
+  trigger?: (open: () => void) => ReactNode;
 };
 
 /**
@@ -33,25 +44,33 @@ export function SelectField({
   options,
   onSelect,
   className = "",
+  trigger,
 }: SelectFieldProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.id === value);
+  const theme = useThemeColors();
 
   return (
     <View className={className}>
-      {label && <Text className="mb-1 font-bold text-brand-background">{label}</Text>}
-      <Pressable
-        onPress={() => setOpen(true)}
-        className="flex-row items-center justify-between rounded-[9px] border border-brand-background/20 bg-brand-background/[0.08] p-[13px]"
-      >
-        <Text
-          className={selected ? "text-brand-background" : "text-brand-background/55"}
-          numberOfLines={1}
-        >
-          {selected ? selected.label : placeholder}
-        </Text>
-        <Ionicons name="chevron-down" size={16} color={AppColors.backgroundMuted} />
-      </Pressable>
+      {trigger ? (
+        trigger(() => setOpen(true))
+      ) : (
+        <>
+          {label && <Text className={`mb-1 font-bold ${INK_TEXT}`}>{label}</Text>}
+          <Pressable
+            onPress={() => setOpen(true)}
+            className={`flex-row items-center justify-between rounded-[9px] border p-[13px] ${FIELD_TINT_BORDER} ${FIELD_TINT_BG}`}
+          >
+            <Text
+              className={selected ? INK_TEXT : MUTED_TEXT}
+              numberOfLines={1}
+            >
+              {selected ? selected.label : placeholder}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={theme.mutedInk} />
+          </Pressable>
+        </>
+      )}
 
       <Modal
         visible={open}
@@ -63,9 +82,11 @@ export function SelectField({
           onPress={() => setOpen(false)}
           className="flex-1 items-center justify-center bg-black/50 p-6"
         >
-          <Pressable className="w-full max-w-xs rounded-2xl bg-white p-4 shadow-md shadow-black/20">
+          <Pressable
+            className={`w-full max-w-xs rounded-2xl p-4 shadow-md shadow-black/20 ${CANVAS_BG}`}
+          >
             {label && (
-              <Text className="mb-3 text-center font-extrabold text-brand-background">
+              <Text className={`mb-3 text-center font-extrabold ${INK_TEXT}`}>
                 {label}
               </Text>
             )}
@@ -81,11 +102,11 @@ export function SelectField({
                     option.id === value ? "bg-brand-input" : ""
                   }`}
                 >
-                  <Text className="font-bold text-brand-background">
+                  <Text className={`font-bold ${INK_TEXT}`}>
                     {option.label}
                   </Text>
                   {option.sublabel && (
-                    <Text className="text-xs text-brand-background/55">
+                    <Text className={`text-sm ${MUTED_TEXT}`}>
                       {option.sublabel}
                     </Text>
                   )}

@@ -1,56 +1,50 @@
-# Welcome to your Expo app 👋
+# Cuenta Cuentas
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App móvil (Expo / React Native) para calcular el precio de venta de piezas de bisutería a partir de sus costos de materiales, empaque, mano de obra, costos indirectos y prestaciones, con un margen de ganancia configurable. Es el frontend de [`calculadora-bisuteria-api`](../calculadora-bisuteria-api), un backend en Laravel.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo (React Native) + Expo Router (navegación por archivos)
+- TypeScript
+- NativeWind (Tailwind para React Native)
+- axios + expo-secure-store / localStorage para la sesión
 
-   ```bash
-   npm install
-   ```
+## Pantallas
 
-2. Start the app
+- **Login / Registro / Recuperar contraseña**
+- **Materiales**: catálogo de insumos con categoría, unidad, costo y stock.
+- **Diseños**: piezas compuestas por materiales y cantidades.
+- **Empaques**: catálogo de empaques y su costo.
+- **Cálculos**: cotizador — combina un diseño, un empaque, el tiempo de mano de obra y si se incluyen o no los costos indirectos/prestaciones legales, y llama al backend para obtener el desglose de costos y el precio de venta sugerido.
+- **Historial**: cotizaciones ya calculadas, con su vigencia (5 días) y el desglose completo bajo demanda; el backend borra automáticamente los registros con más de 30 días.
+- **Configuraciones**: datos de la cuenta, cambio de contraseña, apariencia (claro/oscuro), preferencias de cálculo (salario, horas productivas, margen por defecto) y costos indirectos.
 
-   ```bash
-   npx expo start
-   ```
+## Requisitos
 
-In the output, you'll find options to open the app in a
+- Node.js
+- El backend (`calculadora-bisuteria-api`) corriendo y accesible desde el dispositivo/emulador donde pruebes la app — la URL del backend se configura en `src/api/client.js`.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Instalación
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Levantar la app
 
-### Other setup steps
+```bash
+npm start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Desde ahí puedes abrir la app en:
 
-## Learn more
+- Navegador (`w`) — Expo Web
+- Simulador de iOS (`i`)
+- Emulador/celular Android (`a`, o escaneando el QR con Expo Go)
 
-To learn more about developing your project with Expo, look at the following resources:
+## Estructura
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `src/app/` — una pantalla por archivo (ruteo de Expo Router).
+- `src/components/` — componentes reutilizables (botones, tarjetas, modales de formulario, etc.).
+- `src/api/client.js` — cliente HTTP hacia el backend; todas las llamadas a la API pasan por aquí.
+- `src/constants/` — tema visual, moneda activa y reglas de validación de formularios.

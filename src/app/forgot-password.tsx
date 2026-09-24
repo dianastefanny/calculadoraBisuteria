@@ -2,28 +2,33 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text } from "react-native";
 
+import {
+  forgotPassword,
+  getErrorMessage,
+  resetPassword,
+  verifyResetCode,
+} from "@/api/client";
 import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
 import { LinkText } from "@/components/link-text";
 import { SafeScreen } from "@/components/safe-screen";
 import { TextField } from "@/components/text-field";
-import { DEMO_EMAIL, DEMO_NAME } from "@/constants/demo-auth";
+import { INK_TEXT } from "@/constants/app-theme";
 
 type Step = "email" | "code" | "reset";
 
 /**
  * Recuperación de contraseña, en tres pasos dentro de la misma pantalla:
  *
- * Paso 1 — Buscar cuenta: el usuario escribe su correo y se verifica si
- * existe (por ahora, comparándolo con el correo de prueba DEMO_EMAIL).
+ * Paso 1 — Enviar código: el usuario escribe su correo. Por seguridad, el
+ * backend nunca revela si la cuenta existe o no — solo envía el código si
+ * existe, y siempre responde el mismo mensaje genérico.
  *
- * Paso 2 — Verificar código: se simula el envío de un código al correo
- * (DEMO_RECOVERY_CODE) y el usuario debe introducirlo para continuar.
+ * Paso 2 — Verificar código: valida el código de 6 dígitos enviado al
+ * correo contra el backend.
  *
- * Paso 3 — Nueva contraseña: si el código es correcto, se muestran los
- * campos para escribir y confirmar la nueva contraseña. Al guardar, se
- * regresa al login con un aviso de que ya puede entrar con la contraseña
- * nueva.
+ * Paso 3 — Nueva contraseña: guarda la nueva contraseña usando el mismo
+ * código ya verificado, y regresa al login.
  *
  * "step" decide en cuál de los tres pasos está la pantalla en cada momento.
  */
@@ -34,53 +39,48 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Paso 1: se ejecuta al tocar "Buscar cuenta".
-  const search = () => {
+  // Paso 1: se ejecuta al tocar "Enviar código".
+  const search = async () => {
     if (!email.trim()) {
       setError("Ingresa tu correo electrónico.");
       return;
     }
 
-    // Compara con el correo de prueba porque todavía no hay backend real
-    // donde consultar si la cuenta existe de verdad.
-    //
-    // TODO (backend Laravel): reemplazar esta comparación por una llamada real
-    // usando el cliente ya preparado en src/api/client.js, por ejemplo:
-    //   import { findAccountByEmail } from "@/api/client";
-    //   const data = await findAccountByEmail({ ...datosQueDefinaLaravel });
-    //   // El backend es quien debe enviar el código real al correo.
-    if (email.trim().toLowerCase() !== DEMO_EMAIL) {
-      setError("No encontramos ninguna cuenta con ese correo.");
-      return;
-    }
-
     setError(null);
-    setStep("code"); // Avanza al paso 2 (verificar código).
+    setSubmitting(true);
+    try {
+      await forgotPassword({ email: email.trim() });
+      setStep("code"); // Avanza al paso 2 (verificar código).
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Paso 2: se ejecuta al tocar "Verificar código".
-  const verifyCode = () => {
+  const verifyCode = async () => {
     if (!code.trim()) {
       setError("Ingresa el código que enviamos a tu correo.");
       return;
     }
 
-    // Todavía no hay backend real que genere, envíe y verifique el código, así
-    // que por ahora solo se valida que se haya escrito algo.
-    //
-    // TODO (backend Laravel): reemplazar esta validación por una llamada real
-    // usando el cliente ya preparado en src/api/client.js, por ejemplo:
-    //   import { verifyRecoveryCode } from "@/api/client";
-    //   const data = await verifyRecoveryCode({ ...datosQueDefinaLaravel });
-    //   // Si el código no es correcto, el backend debe indicarlo aquí.
-
     setError(null);
-    setStep("reset"); // Avanza al paso 3 (nueva contraseña).
+    setSubmitting(true);
+    try {
+      await verifyResetCode({ email: email.trim(), code: code.trim() });
+      setStep("reset"); // Avanza al paso 3 (nueva contraseña).
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Paso 3: se ejecuta al tocar "Guardar Nueva Contraseña".
-  const save = () => {
+  const save = async () => {
     if (!newPassword || !confirmPassword) {
       setError("Completa los dos campos de contraseña.");
       return;
@@ -91,17 +91,24 @@ export default function ForgotPassword() {
       return;
     }
 
-    // Todavía no se guarda en un servidor real: solo regresa al login
-    // mostrando el aviso de que ya puede iniciar sesión con la contraseña nueva.
-    //
-    // TODO (backend Laravel): reemplazar esta simulación por una llamada real
-    // usando el cliente ya preparado en src/api/client.js, por ejemplo:
-    //   import { resetPassword } from "@/api/client";
-    //   await resetPassword({ ...datosQueDefinaLaravel });
-    router.replace({
-      pathname: "/login",
-      params: { notice: "Ingresa ahora con tu nueva contraseña" },
-    });
+    setError(null);
+    setSubmitting(true);
+    try {
+      await resetPassword({
+        email: email.trim(),
+        code: code.trim(),
+        password: newPassword,
+        confirmPassword,
+      });
+      router.replace({
+        pathname: "/login",
+        params: { notice: "Ingresa ahora con tu nueva contraseña" },
+      });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const titles: Record<Step, string> = {
@@ -111,14 +118,14 @@ export default function ForgotPassword() {
   };
 
   const subtitles: Record<Step, string> = {
-    email: "Ingresa tu correo y verificaremos tu cuenta.",
+    email: "Ingresa tu correo y te enviaremos un código de verificación.",
     code: "Ingresa el código de 6 dígitos que enviamos a tu correo.",
     reset: "Define una nueva contraseña para tu cuenta.",
   };
 
   return (
     <SafeScreen scroll>
-      <Text className="text-[29px] font-extrabold text-white">
+      <Text className={`text-[29px] font-extrabold ${INK_TEXT}`}>
         {titles[step]}
       </Text>
       <Text className="mb-7 mt-2 text-brand-green">{subtitles[step]}</Text>
@@ -127,7 +134,7 @@ export default function ForgotPassword() {
       {step === "code" && !error && (
         <FormError
           variant="success"
-          message={`¡Cuenta encontrada! ${DEMO_NAME}. Revisa tu correo e ingresa el código a continuación.`}
+          message="Si el correo está registrado, te enviamos un código. Revisa tu bandeja de entrada e ingrésalo a continuación."
         />
       )}
 
@@ -143,7 +150,12 @@ export default function ForgotPassword() {
       />
 
       {step === "email" && (
-        <Button label="Buscar cuenta" onPress={search} className="mt-1" />
+        <Button
+          label="Enviar código"
+          onPress={search}
+          loading={submitting}
+          className="mt-1"
+        />
       )}
 
       {step === "code" && (
@@ -159,6 +171,7 @@ export default function ForgotPassword() {
             label="Verificar código"
             icon="checkmark-circle-outline"
             onPress={verifyCode}
+            loading={submitting}
             className="mt-1"
           />
         </>
@@ -186,6 +199,7 @@ export default function ForgotPassword() {
             label="Guardar Nueva Contraseña"
             icon="shield-checkmark-outline"
             onPress={save}
+            loading={submitting}
             className="mt-1"
           />
         </>

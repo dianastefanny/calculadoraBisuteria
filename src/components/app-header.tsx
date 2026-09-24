@@ -3,8 +3,9 @@ import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Dimensions, Image, Modal, Pressable, Text, View } from "react-native";
 
+import { logoutUser, updateConfiguration } from "@/api/client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { AppColors } from "@/constants/app-theme";
+import { AppColors, CANVAS_BG, INK_TEXT } from "@/constants/app-theme";
 import {
   CURRENCY_OPTIONS,
   setCurrency,
@@ -18,9 +19,8 @@ export type AppHeaderProps = {
 /**
  * Encabezado compartido por todas las pantallas posteriores al inicio de
  * sesión (Materiales, Empaques, Diseños, Cálculos, Historial,
- * Configuraciones): logo pequeño,
- * selector de moneda y botón para cerrar sesión (con su propio diálogo de
- * confirmación, igual al que usaba home.tsx).
+ * Configuraciones): logo pequeño, selector de moneda y botón para cerrar
+ * sesión (con su propio diálogo de confirmación).
  */
 export function AppHeader({ className = "" }: AppHeaderProps) {
   const [confirmingLogout, setConfirmingLogout] = useState(false);
@@ -42,12 +42,23 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
     });
   };
 
-  // TODO (backend Laravel): cuando exista sesión real, reemplazar esto por
-  // una llamada al cliente ya preparado en src/api/client.js, por ejemplo:
-  //   import { logoutUser } from "@/api/client";
-  //   await logoutUser(); // ya deja preparado el borrado del token guardado
-  const confirmLogout = () => {
+  // Cambia la moneda al instante (sin esperar al servidor) y en paralelo la
+  // guarda en la cuenta del usuario para la próxima vez que inicie sesión
+  // (mismo patrón que el tema claro/oscuro en configuraciones.tsx). Si falla
+  // el guardado remoto, la moneda ya cambió localmente y no bloquea al
+  // usuario.
+  const selectCurrency = (code: (typeof CURRENCY_OPTIONS)[number]["code"]) => {
+    setCurrency(code);
+    setCurrencyMenuOpen(false);
+    updateConfiguration({ currency: code }).catch(() => {});
+  };
+
+  // Invalida el token en el backend y borra el guardado en este dispositivo
+  // antes de volver a login (logoutUser no lanza error si el backend no
+  // responde: el usuario igual debe poder salir localmente).
+  const confirmLogout = async () => {
     setConfirmingLogout(false);
+    await logoutUser();
     router.replace("/login");
   };
 
@@ -115,20 +126,17 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
               top: menuPosition.top,
               right: menuPosition.right,
             }}
-            className="w-40 overflow-hidden rounded-2xl bg-white py-1 shadow-md shadow-black/20"
+            className={`w-40 overflow-hidden rounded-2xl py-1 shadow-md shadow-black/20 ${CANVAS_BG}`}
           >
             {CURRENCY_OPTIONS.map((option) => (
               <Pressable
                 key={option.code}
-                onPress={() => {
-                  setCurrency(option.code);
-                  setCurrencyMenuOpen(false);
-                }}
+                onPress={() => selectCurrency(option.code)}
                 className={`px-4 py-3 ${
                   option.code === currentCurrency.code ? "bg-brand-input" : ""
                 }`}
               >
-                <Text className="text-xs font-bold text-brand-background">
+                <Text className={`text-xs font-bold ${INK_TEXT}`}>
                   {option.label}
                 </Text>
               </Pressable>

@@ -2,25 +2,22 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Text } from "react-native";
 
+import { getErrorMessage, registerUser } from "@/api/client";
 import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
 import { LinkText } from "@/components/link-text";
 import { SafeScreen } from "@/components/safe-screen";
 import { TextField } from "@/components/text-field";
-
-// Reglas de validación del formulario de registro.
-const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]+$/;
-const PHONE_REGEX = /^[0-9+\-\s()]{7,15}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número
-// y un carácter especial (el texto de ayuda debajo del campo explica esto mismo al usuario).
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/;
+import { INK_TEXT, MUTED_TEXT } from "@/constants/app-theme";
+import {
+  EMAIL_REGEX,
+  NAME_REGEX,
+  PASSWORD_REGEX,
+  PHONE_REGEX,
+} from "@/constants/validation";
 
 /**
- * Pantalla de registro de nuevos usuarios. Por ahora no envía nada a un
- * servidor real (todavía no existe Laravel conectado): valida los datos en
- * el propio celular y, si están correctos, simula que la cuenta se creó y
- * regresa al login.
+ * Pantalla de registro de nuevos usuarios, conectada al backend de Laravel.
  */
 export default function Register() {
   // Lo que el usuario va escribiendo en cada campo del formulario.
@@ -33,9 +30,10 @@ export default function Register() {
   const [confirm, setConfirm] = useState("");
   // Mensaje de error a mostrar arriba del formulario (null = sin error).
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Se ejecuta al tocar el botón "Crear cuenta".
-  const submit = () => {
+  const submit = async () => {
     // Paso 1: todos los campos son obligatorios, excepto el teléfono.
     if (!name.trim() || !lastName.trim() || !email.trim() || !password || !confirm) {
       setError("Por favor, completa todos los campos.");
@@ -74,22 +72,30 @@ export default function Register() {
     }
 
     setError(null);
-
-    // TODO (backend Laravel): cuando el endpoint de registro esté definido,
-    // reemplazar esta simulación por una llamada real usando el cliente ya
-    // preparado en src/api/client.js, por ejemplo:
-    //   import api from "@/api/client";
-    //   await api.post("/RUTA_QUE_DEFINA_LARAVEL", { ...datosQueDefinaLaravel });
-    // Por ahora se sigue simulando el éxito y regresando al login.
-    router.replace({
-      pathname: "/login",
-      params: { notice: "Cuenta creada correctamente. Ingresa para continuar." },
-    });
+    setSubmitting(true);
+    try {
+      await registerUser({
+        name: name.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        password,
+        confirmPassword: confirm,
+      });
+      router.replace({
+        pathname: "/login",
+        params: { notice: "Cuenta creada correctamente. Ingresa para continuar." },
+      });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <SafeScreen scroll>
-      <Text className="text-[30px] font-extrabold text-white">Registro</Text>
+      <Text className={`text-[30px] font-extrabold ${INK_TEXT}`}>Registro</Text>
       <Text className="mb-6 mt-2 text-brand-green">
         Regístrate para comenzar a utilizar Cuenta Cuentas
       </Text>
@@ -139,7 +145,7 @@ export default function Register() {
         secureTextEntry
         icon="lock-closed-outline"
       />
-      <Text className="-mt-3 mb-4 text-xs text-brand-soft-text">
+      <Text className={`-mt-3 mb-4 text-sm ${MUTED_TEXT}`}>
         La contraseña debe tener mínimo 8 caracteres, con al menos una
         mayúscula, una minúscula, un número y un carácter especial.
       </Text>
@@ -153,7 +159,12 @@ export default function Register() {
         icon="lock-closed-outline"
       />
 
-      <Button label="Crear cuenta" onPress={submit} className="mt-1" />
+      <Button
+        label="Crear cuenta"
+        onPress={submit}
+        loading={submitting}
+        className="mt-1"
+      />
 
       <LinkText
         label="¿Ya tienes cuenta?"

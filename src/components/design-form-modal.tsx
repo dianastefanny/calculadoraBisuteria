@@ -2,75 +2,107 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
+import {
+  createDesign,
+  fetchMaterials,
+  getErrorMessage,
+  getUnitLabel,
+  updateDesign,
+} from "@/api/client";
 import { Button } from "@/components/button";
+import { FormError } from "@/components/form-error";
 import { SelectField } from "@/components/select-field";
 import { TextField } from "@/components/text-field";
-import { AppColors } from "@/constants/app-theme";
-import { useCurrency } from "@/constants/currency-store";
 import {
-  addDesign,
-  updateDesign,
-  type Design,
-  type DesignMaterial,
-} from "@/constants/demo-designs";
-import { formatMaterialDetail, useMaterials } from "@/constants/demo-materials";
+  CANVAS_BG,
+  FIELD_TINT_BG,
+  FIELD_TINT_BORDER,
+  INK_TEXT,
+  MUTED_TEXT,
+  useFieldTintProps,
+  useThemeColors,
+} from "@/constants/app-theme";
+import { formatAmount, useCurrency } from "@/constants/currency-store";
+
+// Forma del material de un diseño, tal como la devuelve client.js.
+export type ApiDesignMaterial = {
+  materialId: string;
+  quantity: string;
+  materialName: string;
+  materialUnit: string;
+};
+
+// Forma del diseño tal como lo devuelve src/api/client.js (mapDesignFromApi).
+export type ApiDesign = {
+  id: string;
+  name: string;
+  description: string;
+  materials: ApiDesignMaterial[];
+};
 
 export type DesignFormModalProps = {
   visible: boolean;
   onClose: () => void;
   // Si se pasa un diseño, el modal lo edita; si no, crea uno nuevo.
-  design?: Design | null;
-};
-
-// Estilo de campo compartido: fondo claro (el modal es una tarjeta blanca),
-// coloreado con azul oscuro oficial en baja opacidad (paleta de 8 colores).
-const FIELD_PROPS = {
-  inputClassName: "border-brand-background/20 bg-brand-background/[0.08]",
-  inputStyle: { color: AppColors.background },
-  placeholderColor: AppColors.backgroundMuted,
+  design?: ApiDesign | null;
+  // Se llama después de crear/editar con éxito, para recargar la lista.
+  onSaved: () => void;
 };
 
 /**
  * Modal para crear o editar un diseño: nombre, descripción y los materiales
- * que usa (con su cantidad). Los materiales se agregan de a uno: se elige un
- * material ya registrado, se escribe la cantidad y "Agregar" lo suma a la
- * lista de abajo (cada uno se puede quitar antes de guardar). Mismo patrón
- * que MaterialFormModal/PackagingFormModal. Los datos se guardan en el
- * almacén temporal de src/constants/demo-designs.ts; ver el TODO ahí para la
- * conexión futura con Laravel.
+ * que usa (con su cantidad) — conectado al backend real
+ * (GET/POST/PUT /designs, GET /materials). Los materiales se agregan de a
+ * uno: se elige un material ya registrado, se escribe la cantidad y
+ * "Agregar" lo suma a la lista de abajo (cada uno se puede quitar antes de
+ * guardar). Mismo patrón que MaterialFormModal/PackagingFormModal.
  */
 export function DesignFormModal({
   visible,
   onClose,
   design,
+  onSaved,
 }: DesignFormModalProps) {
   const isEditing = Boolean(design);
-  const materials = useMaterials();
   const currency = useCurrency();
+  const theme = useThemeColors();
+  const fieldProps = useFieldTintProps();
 
+  const [materials, setMaterials] = useState<
+    { id: string; name: string; unit: string; unitCost: string }[]
+  >([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [designMaterials, setDesignMaterials] = useState<DesignMaterial[]>([]);
+  const [designMaterials, setDesignMaterials] = useState<ApiDesignMaterial[]>(
+    [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Campos temporales del "agregar material": se limpian después de cada Agregar.
   const [pickerMaterialId, setPickerMaterialId] = useState<string | null>(null);
   const [pickerQuantity, setPickerQuantity] = useState("");
 
-  // Cada vez que se abre el modal, precarga los datos del diseño (edición) o
-  // limpia el formulario (creación).
+  // Cada vez que se abre el modal, carga los materiales del usuario y
+  // precarga los datos del diseño (edición) o limpia el formulario (creación).
   useEffect(() => {
     if (!visible) return;
+    setError(null);
     setName(design?.name ?? "");
     setDescription(design?.description ?? "");
     setDesignMaterials(design?.materials ?? []);
     setPickerMaterialId(null);
     setPickerQuantity("");
+
+    fetchMaterials()
+      .then(setMaterials)
+      .catch((err) => setError(getErrorMessage(err)));
   }, [visible, design]);
 
   const materialOptions = materials.map((material) => ({
     id: material.id,
     label: material.name,
-    sublabel: formatMaterialDetail(material, currency.symbol),
+    sublabel: `${getUnitLabel(material.unit)} · ${currency.symbol}${formatAmount(material.unitCost, currency.code)} c/u`,
   }));
 
   // Agrega el material elegido a la lista del diseño; si ya estaba agregado,
@@ -78,18 +110,24 @@ export function DesignFormModal({
   const addMaterialToDesign = () => {
     if (!pickerMaterialId || !pickerQuantity.trim()) return;
 
+    const pickedMaterial = materials.find((m) => m.id === pickerMaterialId);
+    const newItem: ApiDesignMaterial = {
+      materialId: pickerMaterialId,
+      quantity: pickerQuantity,
+      materialName: pickedMaterial?.name ?? "",
+      materialUnit: pickedMaterial?.unit ?? "",
+    };
+
     setDesignMaterials((list) => {
       const alreadyAdded = list.some(
         (item) => item.materialId === pickerMaterialId,
       );
       if (alreadyAdded) {
         return list.map((item) =>
-          item.materialId === pickerMaterialId
-            ? { ...item, quantity: pickerQuantity }
-            : item,
+          item.materialId === pickerMaterialId ? newItem : item,
         );
       }
-      return [...list, { materialId: pickerMaterialId, quantity: pickerQuantity }];
+      return [...list, newItem];
     });
     setPickerMaterialId(null);
     setPickerQuantity("");
@@ -101,18 +139,32 @@ export function DesignFormModal({
     );
   };
 
-  // TODO (backend Laravel): reemplazar esto por una llamada real usando el
-  // cliente ya preparado en src/api/client.js, por ejemplo:
-  //   import { createDesign } from "@/api/client";
-  //   await createDesign({ ...datosQueDefinaLaravel });
-  const save = () => {
-    const payload = { name, description, materials: designMaterials };
-    if (isEditing && design) {
-      updateDesign(design.id, payload);
-    } else {
-      addDesign(payload);
+  const save = async () => {
+    if (!name.trim() || designMaterials.length === 0) {
+      setError("Ingresa un nombre y agrega al menos un material.");
+      return;
     }
-    onClose();
+
+    setError(null);
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        materials: designMaterials,
+      };
+      if (isEditing && design) {
+        await updateDesign(design.id, payload);
+      } else {
+        await createDesign(payload);
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -126,13 +178,17 @@ export function DesignFormModal({
         onPress={onClose}
         className="flex-1 items-center justify-center bg-black/50 p-6"
       >
-        <Pressable className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-md shadow-black/20">
-          <Text className="mb-4 text-lg font-extrabold text-brand-background">
+        <Pressable
+          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
+        >
+          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
             {isEditing ? "Editar diseño" : "Nuevo diseño"}
           </Text>
 
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text className="mb-1 font-bold text-brand-background">
+            <FormError message={error} />
+
+            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
               Nombre del diseño
             </Text>
             <TextField
@@ -141,10 +197,10 @@ export function DesignFormModal({
               placeholder="Ej. Aretes Mandala"
               className="mb-3"
               autoCorrect={false}
-              {...FIELD_PROPS}
+              {...fieldProps}
             />
 
-            <Text className="mb-1 font-bold text-brand-background">
+            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
               Descripción
             </Text>
             <TextField
@@ -153,10 +209,10 @@ export function DesignFormModal({
               placeholder="Breve descripción del diseño"
               className="mb-3"
               autoCorrect={false}
-              {...FIELD_PROPS}
+              {...fieldProps}
             />
 
-            <Text className="mb-1 font-bold text-brand-background">
+            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
               Materiales
             </Text>
             <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
@@ -175,7 +231,7 @@ export function DesignFormModal({
                   keyboardType="numeric"
                   placeholder="Cantidad"
                   className="mb-0"
-                  {...FIELD_PROPS}
+                  {...fieldProps}
                 />
               </View>
             </View>
@@ -187,26 +243,23 @@ export function DesignFormModal({
             />
 
             {designMaterials.length === 0 ? (
-              <Text className="mb-3 text-xs text-brand-background/55">
+              <Text className={`mb-3 text-sm ${MUTED_TEXT}`}>
                 Aún no has agregado materiales a este diseño.
               </Text>
             ) : (
               <View className="mb-3 gap-2">
                 {designMaterials.map((item) => {
-                  const material = materials.find(
-                    (m) => m.id === item.materialId,
-                  );
                   return (
                     <View
                       key={item.materialId}
-                      className="flex-row items-center justify-between rounded-[9px] border border-brand-background/20 bg-brand-background/[0.08] p-3"
+                      className={`flex-row items-center justify-between rounded-[9px] border p-3 ${FIELD_TINT_BORDER} ${FIELD_TINT_BG}`}
                     >
                       <View className="flex-1">
-                        <Text className="font-bold text-brand-background">
-                          {material?.name ?? "Material eliminado"}
+                        <Text className={`font-bold ${INK_TEXT}`}>
+                          {item.materialName || "Material eliminado"}
                         </Text>
-                        <Text className="text-xs text-brand-background/55">
-                          {item.quantity} {material?.unit ?? ""}
+                        <Text className={`text-sm ${MUTED_TEXT}`}>
+                          {item.quantity} {getUnitLabel(item.materialUnit)}
                         </Text>
                       </View>
                       <Pressable
@@ -216,7 +269,7 @@ export function DesignFormModal({
                         <Ionicons
                           name="close-circle"
                           size={20}
-                          color={AppColors.background}
+                          color={theme.ink}
                         />
                       </Pressable>
                     </View>
@@ -228,11 +281,12 @@ export function DesignFormModal({
 
           <View className="mt-2 flex-row items-center justify-end gap-4">
             <Pressable onPress={onClose} hitSlop={8}>
-              <Text className="font-bold text-brand-background/55">Cancelar</Text>
+              <Text className={`font-bold ${MUTED_TEXT}`}>Cancelar</Text>
             </Pressable>
             <Button
               label={isEditing ? "Guardar cambios" : "Crear"}
               onPress={save}
+              loading={submitting}
               className="px-6 py-3"
             />
           </View>

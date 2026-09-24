@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Text, View } from "react-native";
 
-import { AppColors } from "@/constants/app-theme";
+import { AppColors, CANVAS_BG, INK_TEXT } from "@/constants/app-theme";
 
 export type FormErrorProps = {
   message?: string | null;
@@ -37,10 +37,10 @@ export function FormError({
 
   return (
     <View
-      className={`mb-4 flex-row items-center gap-3 rounded-xl bg-white p-3 shadow-md shadow-black/20 ${className}`}
+      className={`mb-4 flex-row items-center gap-3 rounded-xl p-3 shadow-md shadow-black/20 ${CANVAS_BG} ${className}`}
     >
       <Ionicons name={icon} size={22} color={color} />
-      <Text className="flex-1 text-brand-background">{message}</Text>
+      <Text className={`flex-1 ${INK_TEXT}`}>{message}</Text>
     </View>
   );
 }

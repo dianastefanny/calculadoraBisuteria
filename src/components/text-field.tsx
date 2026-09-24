@@ -9,7 +9,7 @@ import {
   type TextInputProps,
 } from "react-native";
 
-import { AppColors } from "@/constants/app-theme";
+import { INK_TEXT, useThemeColors } from "@/constants/app-theme";
 
 export type TextFieldProps = {
   label?: string;
@@ -58,24 +58,25 @@ export function TextField({
   // Mientras "hidden" sea true, la contraseña se ve como puntos; el ojito la cambia.
   const [hidden, setHidden] = useState(secureTextEntry);
   const hasError = Boolean(error);
+  const theme = useThemeColors();
 
   return (
     <View className={`mb-4 ${className}`}>
-      {label && <Text className="mb-2 font-bold text-white">{label}</Text>}
+      {label && <Text className={`mb-2 font-bold ${INK_TEXT}`}>{label}</Text>}
       <View className="relative justify-center">
         {icon && (
           <View className="absolute left-3 z-10">
-            <Ionicons name={icon} size={18} color={AppColors.softText} />
+            <Ionicons name={icon} size={18} color={theme.mutedInk} />
           </View>
         )}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={placeholderColor ?? AppColors.placeholder}
+          placeholderTextColor={placeholderColor ?? theme.mutedInk}
           secureTextEntry={secureTextEntry && hidden}
-          style={inputStyle}
-          className={`rounded-[9px] border bg-brand-input p-[13px] text-white ${
+          style={inputStyle ?? { color: theme.ink }}
+          className={`rounded-[9px] border bg-brand-input p-[13px] ${
             icon ? "pl-10" : ""
           } ${secureTextEntry ? "pr-10" : ""} ${
             hasError ? "border-brand-error" : "border-brand-input-border"
@@ -92,7 +93,7 @@ export function TextField({
             <Ionicons
               name={hidden ? "eye-outline" : "eye-off-outline"}
               size={18}
-              color={AppColors.softText}
+              color={theme.mutedInk}
             />
           </Pressable>
         )}

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/components/app-header";
 import { BottomNav, type TabKey } from "@/components/bottom-nav";
+import { CANVAS_BG } from "@/constants/app-theme";
 
 export type TabScreenProps = {
   active: TabKey;
@@ -22,7 +23,7 @@ export function TabScreen({ active, children, scroll = true }: TabScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-1 bg-brand-background">
+    <View className={`flex-1 ${CANVAS_BG}`}>
       {/* El fondo claro de AppHeader se extiende también detrás de la barra
           de estado (hora, wifi, batería) para que no quede una franja azul
           oscura separada arriba del encabezado. */}

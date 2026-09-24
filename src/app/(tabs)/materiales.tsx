@@ -1,58 +1,95 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
+import {
+  deleteMaterial as deleteMaterialApi,
+  fetchMaterials,
+  getErrorMessage,
+  getUnitLabel,
+} from "@/api/client";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { MaterialFormModal } from "@/components/material-form-modal";
-import { TabScreen } from "@/components/tab-screen";
-import { AppColors } from "@/constants/app-theme";
-import { getCategoryName } from "@/constants/demo-categories";
+import { FormError } from "@/components/form-error";
 import {
-  deleteMaterial,
-  formatMaterialDetail,
-  getMaterialStatus,
-  useMaterials,
-  type Material,
-} from "@/constants/demo-materials";
-import { useCurrency } from "@/constants/currency-store";
+  MaterialFormModal,
+  type ApiMaterial,
+} from "@/components/material-form-modal";
+import { TabScreen } from "@/components/tab-screen";
+import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
+import { formatAmount, useCurrency, type CurrencyOption } from "@/constants/currency-store";
+
+function getMaterialStatus(material: ApiMaterial): "Disponible" | "Agotado" {
+  const stockNumber = Number(material.stock);
+  return Number.isFinite(stockNumber) && stockNumber > 0
+    ? "Disponible"
+    : "Agotado";
+}
+
+function formatMaterialDetail(material: ApiMaterial, currency: CurrencyOption) {
+  return `${material.stock} ${getUnitLabel(material.unit)} · ${currency.symbol}${formatAmount(material.unitCost, currency.code)} c/u`;
+}
 
 /**
  * Pestaña Materiales: primera pantalla que se muestra después de iniciar
- * sesión. Aquí se crean, editan y listan los materiales en existencia (antes
- * vivía en inventory.tsx, y luego en insumos.tsx).
+ * sesión. Aquí se crean, editan y listan los materiales en existencia,
+ * conectada al backend real (GET/DELETE /materials).
  *
  * "+ Nuevo material" y el lápiz de cada tarjeta abren el mismo
  * MaterialFormModal (sin material = crear, con material = editar); no hay
  * un formulario aparte para cada caso. El bote de basura pide confirmación
- * (ConfirmDialog) antes de eliminar. Los datos viven en
- * src/constants/demo-materials.ts mientras no hay backend, ver el TODO ahí
- * para la conexión futura con Laravel.
+ * (ConfirmDialog) antes de eliminar.
  */
 export default function Materiales() {
-  const materials = useMaterials();
   const currency = useCurrency();
+  const theme = useThemeColors();
+  const [materials, setMaterials] = useState<ApiMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formVisible, setFormVisible] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<Material | null>(
+  const [editingMaterial, setEditingMaterial] = useState<ApiMaterial | null>(
     null,
   );
-  const [deletingMaterial, setDeletingMaterial] = useState<Material | null>(
+  const [deletingMaterial, setDeletingMaterial] = useState<ApiMaterial | null>(
     null,
   );
+
+  const loadMaterials = useCallback(async () => {
+    setLoading(true);
+    try {
+      setMaterials(await fetchMaterials());
+      setError(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMaterials();
+  }, [loadMaterials]);
 
   const openCreate = () => {
     setEditingMaterial(null);
     setFormVisible(true);
   };
 
-  const openEdit = (material: Material) => {
+  const openEdit = (material: ApiMaterial) => {
     setEditingMaterial(material);
     setFormVisible(true);
   };
 
-  const confirmDelete = () => {
-    if (deletingMaterial) deleteMaterial(deletingMaterial.id);
+  const confirmDelete = async () => {
+    if (deletingMaterial) {
+      try {
+        await deleteMaterialApi(deletingMaterial.id);
+        await loadMaterials();
+      } catch (err) {
+        setError(getErrorMessage(err));
+      }
+    }
     setDeletingMaterial(null);
   };
 
@@ -61,7 +98,7 @@ export default function Materiales() {
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="cube-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
-          <Text className="text-xl font-extrabold text-white">
+          <Text className={`text-xl font-extrabold ${INK_TEXT}`}>
             Materiales
           </Text>
           <Text className="text-brand-green">
@@ -70,6 +107,22 @@ export default function Materiales() {
         </View>
       </View>
 
+      <Button label="+ Nuevo material" onPress={openCreate} className="mb-4" />
+
+      <FormError message={error} />
+
+      {loading && (
+        <Text className={`mb-3 text-center ${MUTED_TEXT}`}>Cargando materiales...</Text>
+      )}
+
+      {!loading && materials.length === 0 && !error && (
+        <Card className="mb-3">
+          <Text className={`text-center ${MUTED_TEXT}`}>
+            Aún no has creado ningún material.
+          </Text>
+        </Card>
+      )}
+
       {materials.map((material) => {
         const status = getMaterialStatus(material);
         const isAvailable = status === "Disponible";
@@ -77,11 +130,11 @@ export default function Materiales() {
           <Card key={material.id} className="mb-3">
             <View className="flex-row items-start justify-between gap-2">
               <View className="flex-1">
-                <Text className="text-[17px] font-extrabold text-white">
+                <Text className={`text-[17px] font-extrabold ${INK_TEXT}`}>
                   {material.name}
                 </Text>
-                <Text className="text-xs text-brand-turquoise">
-                  {getCategoryName(material.category)}
+                <Text className="text-sm text-brand-turquoise">
+                  {material.categoryName}
                 </Text>
               </View>
               <View
@@ -101,7 +154,7 @@ export default function Materiales() {
                 <Ionicons
                   name="pencil"
                   size={16}
-                  color={AppColors.softText}
+                  color={theme.mutedInk}
                 />
               </Pressable>
               <Pressable
@@ -109,22 +162,21 @@ export default function Materiales() {
                 hitSlop={8}
                 className="ml-2"
               >
-                <Ionicons name="trash" size={16} color={AppColors.softText} />
+                <Ionicons name="trash" size={16} color={theme.mutedInk} />
               </Pressable>
             </View>
-            <Text className="mt-1 text-brand-soft-text">
-              {formatMaterialDetail(material, currency.symbol)}
+            <Text className={`mt-1 ${MUTED_TEXT}`}>
+              {formatMaterialDetail(material, currency)}
             </Text>
           </Card>
         );
       })}
 
-      <Button label="+ Nuevo material" onPress={openCreate} />
-
       <MaterialFormModal
         visible={formVisible}
         material={editingMaterial}
         onClose={() => setFormVisible(false)}
+        onSaved={loadMaterials}
       />
 
       <ConfirmDialog

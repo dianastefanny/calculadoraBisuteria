@@ -42,8 +42,7 @@ example
 ios/
 android/
 
-# Configuración local del asistente de IA (Claude Code): no es parte del
-# proyecto ni debe compartirse.
+# Configuración local del editor, no es parte del proyecto
 .claude/
 .claudeignore
 CLAUDE.md

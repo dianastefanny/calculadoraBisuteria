@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 // -----------------------------------------------------------------------
 // Moneda seleccionada globalmente (selector "COP$/USD$/EUR€" del encabezado),
-// compartida por toda la app con el mismo patrón de suscripción que
-// demo-materials.ts, para que cualquier pantalla que muestre un precio use
-// siempre la moneda activa.
+// compartida por toda la app mediante un store externo (useSyncExternalStore),
+// para que cualquier pantalla que muestre un precio use siempre la moneda
+// activa y se actualice al instante, sin esperar a remontarse.
 //
-// TODO (backend Laravel): sincronizar la moneda seleccionada con la
-// preferencia real del usuario en el servidor. Importante: como todavía no
-// hay tasas de cambio reales, esto solo cambia el símbolo/código que se
-// muestra junto a los montos — NO convierte los números (eso requiere tasas
-// de cambio reales que debe entregar el backend).
+// La moneda elegida se guarda en la cuenta del usuario (configuration.currency
+// en el backend, ver AppHeader) y se restaura al iniciar sesión (ver
+// login.tsx) — mismo mecanismo que el tema claro/oscuro.
+//
+// Importante: como todavía no hay tasas de cambio reales, esto solo cambia el
+// símbolo/código que se muestra junto a los montos — NO convierte los
+// números (eso requeriría tasas de cambio reales que debe entregar el
+// backend).
 // -----------------------------------------------------------------------
 
 export type CurrencyCode = "COP" | "USD" | "EUR";
@@ -35,6 +38,11 @@ function notify() {
   listeners.forEach((listener) => listener());
 }
 
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export function getCurrentCurrencyOption() {
   return (
     CURRENCY_OPTIONS.find((option) => option.code === currency) ??
@@ -49,15 +57,32 @@ export function setCurrency(code: CurrencyCode) {
 
 /** Lee la moneda activa y hace que el componente se vuelva a renderizar cuando cambie. */
 export function useCurrency() {
-  const [, forceRender] = useState(0);
+  return useSyncExternalStore(subscribe, getCurrentCurrencyOption);
+}
 
-  useEffect(() => {
-    const listener = () => forceRender((n) => n + 1);
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  }, []);
+const LOCALE_BY_CURRENCY: Record<CurrencyCode, string> = {
+  COP: "es-CO",
+  USD: "en-US",
+  EUR: "es-ES",
+};
 
-  return getCurrentCurrencyOption();
+/**
+ * Formatea un monto con separador de miles al estilo de la moneda activa
+ * (ej. 2500 → "2.500" en pesos colombianos). Los pesos no muestran
+ * decimales (no se usan centavos en la práctica); dólares y euros sí
+ * muestran los 2 decimales habituales.
+ */
+export function formatAmount(
+  value: number | string,
+  currencyCode: CurrencyCode = "COP",
+): string {
+  const amount = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(amount)) return String(value);
+
+  const decimals = currencyCode === "COP" ? 0 : 2;
+
+  return new Intl.NumberFormat(LOCALE_BY_CURRENCY[currencyCode], {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(amount);
 }
