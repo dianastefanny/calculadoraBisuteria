@@ -43,7 +43,7 @@ async function clearStoredToken() {
 }
 
 const api = axios.create({
-  baseURL: "http://192.168.1.4:8000/api",
+  baseURL: "http://192.168.1.16:8000/api",
 });
 
 // Antes de enviar CUALQUIER petición, agrega automáticamente el token de
@@ -482,17 +482,63 @@ export async function deleteIndirectCost(id) {
 }
 
 // -----------------------------------------------------------------------
-// Prestaciones legales (usadas por configuraciones.tsx, solo lectura por
-// ahora — no hay pantalla para crearlas/editarlas todavía).
+// Tipos de prestación (usados por benefit-form-modal.tsx)
 // -----------------------------------------------------------------------
+
+export async function fetchBenefitTypes() {
+  const { data } = await api.get("/benefit-types");
+  return data.map((benefitType) => ({
+    id: String(benefitType.id),
+    name: benefitType.name,
+  }));
+}
+
+export async function createBenefitType({ name }) {
+  const { data } = await api.post("/benefit-types", { name });
+  return { id: String(data.id), name: data.name };
+}
+
+// -----------------------------------------------------------------------
+// Prestaciones legales (usadas por configuraciones.tsx). Las 5 legales
+// vienen sembradas por defecto al crear la cuenta, pero el usuario puede
+// agregar otras, corregir su nombre/porcentaje, o eliminarlas.
+// -----------------------------------------------------------------------
+
+function mapBenefitFromApi(benefit) {
+  return {
+    id: String(benefit.id),
+    benefitTypeId: String(benefit.benefit_type_id),
+    benefitTypeName: benefit.benefit_type?.name ?? "",
+    name: benefit.name,
+    percentage: String(benefit.percentage),
+  };
+}
 
 export async function fetchBenefits() {
   const { data } = await api.get("/benefits");
-  return data.map((benefit) => ({
-    id: String(benefit.id),
-    name: benefit.name,
-    percentage: String(benefit.percentage),
-  }));
+  return data.map(mapBenefitFromApi);
+}
+
+export async function createBenefit({ benefitTypeId, name, percentage }) {
+  const { data } = await api.post("/benefits", {
+    benefit_type_id: Number(benefitTypeId),
+    name,
+    percentage,
+  });
+  return mapBenefitFromApi(data);
+}
+
+export async function updateBenefit(id, { benefitTypeId, name, percentage }) {
+  const { data } = await api.put(`/benefits/${id}`, {
+    benefit_type_id: benefitTypeId ? Number(benefitTypeId) : undefined,
+    name,
+    percentage,
+  });
+  return mapBenefitFromApi(data);
+}
+
+export async function deleteBenefit(id) {
+  await api.delete(`/benefits/${id}`);
 }
 
 // -----------------------------------------------------------------------
@@ -517,6 +563,12 @@ function mapCalculationToHistoryEntry(calculation) {
     totalCost: Number(calculation.total_cost),
     profitMargin: Number(calculation.margin),
     salePrice: Number(calculation.sale_price),
+    quantity: Number(calculation.quantity),
+    discountPercentage:
+      calculation.discount_percentage != null
+        ? Number(calculation.discount_percentage)
+        : null,
+    finalPrice: Number(calculation.final_price),
     validUntil: calculation.valid_until,
     createdAt: calculation.created_at,
   };
@@ -536,6 +588,8 @@ export async function calculatePieceCost({
   packagingId,
   productionTimeMinutes,
   packagingQuantity,
+  quantity,
+  discountPercentage,
   includeIndirectCosts,
   includeBenefits,
 }) {
@@ -544,6 +598,8 @@ export async function calculatePieceCost({
     production_time_minutes: productionTimeMinutes,
     packaging_id: packagingId ? Number(packagingId) : undefined,
     packaging_quantity: packagingId ? packagingQuantity || undefined : undefined,
+    quantity: quantity || undefined,
+    discount_percentage: discountPercentage || undefined,
     include_indirect_costs: includeIndirectCosts,
     include_benefits: includeBenefits,
   });
@@ -556,6 +612,10 @@ export async function calculatePieceCost({
     totalCost: Number(data.total_cost),
     profitMargin: Number(data.margin),
     salePrice: Number(data.sale_price),
+    quantity: Number(data.quantity),
+    discountPercentage:
+      data.discount_percentage != null ? Number(data.discount_percentage) : null,
+    finalPrice: Number(data.final_price),
     validUntil: data.valid_until,
     createdAt: data.created_at,
   };

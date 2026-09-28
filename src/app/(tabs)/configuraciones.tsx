@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 
 import {
+  deleteBenefit,
   deleteIndirectCost as deleteIndirectCostApi,
   fetchBenefits,
   fetchConfiguration,
@@ -14,6 +15,7 @@ import {
   updatePassword,
   updateProfile,
 } from "@/api/client";
+import { BenefitFormModal, type ApiBenefit } from "@/components/benefit-form-modal";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -231,24 +233,58 @@ export default function Configuraciones() {
     setDeletingIndirectCost(null);
   };
 
-  // Prestaciones legales: solo lectura por ahora (no hay pantalla para
-  // crearlas/editarlas todavía). Se activan o no como grupo desde el
-  // interruptor "Incluir prestaciones legales" que ya existe en Cálculos.
-  const [benefits, setBenefits] = useState<
-    { id: string; name: string; percentage: string }[]
-  >([]);
+  // Prestaciones legales: las 5 legales vienen sembradas por defecto en la
+  // cuenta (ARL, salud, pensión, etc.), pero el usuario puede agregar otras,
+  // editarlas o eliminarlas cuando quiera. Se activan o no como grupo desde
+  // el interruptor "Incluir prestaciones legales" que ya existe en Cálculos.
+  const [benefits, setBenefits] = useState<ApiBenefit[]>([]);
   const [benefitsLoading, setBenefitsLoading] = useState(true);
   const [benefitsError, setBenefitsError] = useState<string | null>(null);
+  const [benefitFormVisible, setBenefitFormVisible] = useState(false);
+  const [editingBenefit, setEditingBenefit] = useState<ApiBenefit | null>(
+    null,
+  );
+  const [deletingBenefit, setDeletingBenefit] = useState<ApiBenefit | null>(
+    null,
+  );
+
+  const loadBenefits = useCallback(async () => {
+    setBenefitsLoading(true);
+    try {
+      setBenefits(await fetchBenefits());
+      setBenefitsError(null);
+    } catch (err) {
+      setBenefitsError(getErrorMessage(err));
+    } finally {
+      setBenefitsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchBenefits()
-      .then((data) => {
-        setBenefits(data);
-        setBenefitsError(null);
-      })
-      .catch((err) => setBenefitsError(getErrorMessage(err)))
-      .finally(() => setBenefitsLoading(false));
-  }, []);
+    loadBenefits();
+  }, [loadBenefits]);
+
+  const openCreateBenefit = () => {
+    setEditingBenefit(null);
+    setBenefitFormVisible(true);
+  };
+
+  const openEditBenefit = (item: ApiBenefit) => {
+    setEditingBenefit(item);
+    setBenefitFormVisible(true);
+  };
+
+  const confirmDeleteBenefit = async () => {
+    if (deletingBenefit) {
+      try {
+        await deleteBenefit(deletingBenefit.id);
+        await loadBenefits();
+      } catch (err) {
+        setBenefitsError(getErrorMessage(err));
+      }
+    }
+    setDeletingBenefit(null);
+  };
 
   const [editingRow, setEditingRow] = useState<EditableRowKey | null>(null);
 
@@ -684,11 +720,17 @@ export default function Configuraciones() {
           Prestaciones legales
         </Text>
         <Text className={`mb-3 text-sm ${MUTED_TEXT}`}>
-          Porcentajes de referencia que Cálculos suma sobre tu salario cuando
-          activas "Incluir prestaciones legales".
+          Porcentajes que Cálculos suma sobre tu salario cuando activas
+          "Incluir prestaciones legales".
         </Text>
 
         <FormError message={benefitsError} />
+
+        <Button
+          label="+ Agregar prestación"
+          onPress={openCreateBenefit}
+          className="mb-2"
+        />
 
         {benefitsLoading ? (
           <Text className={`py-3 text-center ${MUTED_TEXT}`}>
@@ -700,18 +742,49 @@ export default function Configuraciones() {
           </Text>
         ) : (
           benefits.map((benefit, index) => (
-            <View
+            <Pressable
               key={benefit.id}
+              onPress={() => openEditBenefit(benefit)}
               className={`flex-row items-center justify-between py-3 ${
                 index === 0 ? "" : "border-t border-brand-input-border"
               }`}
             >
-              <Text className={`font-bold ${INK_TEXT}`}>{benefit.name}</Text>
-              <Text className={MUTED_TEXT}>{benefit.percentage}%</Text>
-            </View>
+              <View className="flex-1">
+                <Text className={`font-bold ${INK_TEXT}`}>{benefit.name}</Text>
+                <Text className={`text-sm ${MUTED_TEXT}`}>
+                  {benefit.benefitTypeName}
+                </Text>
+              </View>
+              <Text className={`mr-2 ${MUTED_TEXT}`}>
+                {benefit.percentage}%
+              </Text>
+              <Pressable
+                onPress={() => setDeletingBenefit(benefit)}
+                hitSlop={8}
+              >
+                <Ionicons name="trash" size={16} color={theme.mutedInk} />
+              </Pressable>
+            </Pressable>
           ))
         )}
       </Card>
+
+      <BenefitFormModal
+        visible={benefitFormVisible}
+        benefit={editingBenefit}
+        onClose={() => setBenefitFormVisible(false)}
+        onSaved={loadBenefits}
+      />
+
+      <ConfirmDialog
+        visible={Boolean(deletingBenefit)}
+        title="Eliminar prestación"
+        message={`¿Seguro que deseas eliminar "${deletingBenefit?.name}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={confirmDeleteBenefit}
+        onCancel={() => setDeletingBenefit(null)}
+      />
 
       <EditFieldModal
         visible={editingRow !== null}

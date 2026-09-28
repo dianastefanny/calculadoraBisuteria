@@ -79,6 +79,13 @@ type FinalCalculationResult = {
   // ganancia sea exactamente ese porcentaje sobre el precio final (no sobre
   // el costo). Es el único valor de este resultado que cambia con el margen.
   salePrice: number;
+  // Cuántas piezas se cotizaron de una vez (pedidos grandes). Materiales,
+  // empaque y mano de obra ya vienen multiplicados por esta cantidad.
+  quantity: number;
+  // Descuento aplicado sobre el precio de venta, si se usó (null si no).
+  discountPercentage: number | null;
+  // Precio final ya con el descuento aplicado (igual a salePrice si no hubo descuento).
+  finalPrice: number;
   // Fecha hasta la que esta cotización es válida (5 días desde el cálculo,
   // mismo criterio que ya usa Historial para "Vigente"/"Vencida").
   validUntil: string;
@@ -167,6 +174,13 @@ export default function Calculos() {
   // Registro manual del tiempo (alternativa al cronómetro).
   const [manualHours, setManualHours] = useState("");
   const [manualMinutes, setManualMinutes] = useState("");
+
+  // Cuántas piezas iguales se cotizan de una vez (pedidos grandes). El
+  // tiempo, los materiales y el empaque son "por pieza"; el backend los
+  // multiplica por esta cantidad. Descuento es opcional, para esos mismos
+  // pedidos grandes.
+  const [quantity, setQuantity] = useState("1");
+  const [discountPercentage, setDiscountPercentage] = useState("");
 
   // Los costos indirectos y las prestaciones legales ya están configurados
   // por el usuario en el backend (catálogos mensuales); aquí solo se decide
@@ -298,7 +312,7 @@ export default function Calculos() {
       .filter(Boolean);
     const materialsLine =
       materialNames.length > 0 ? `\nMateriales: ${materialNames.join(", ")}` : "";
-    return `${selectedDesign.name} — Precio de venta: ${currency.symbol}${formatAmount(calculationResult.salePrice, currency.code)}${materialsLine}`;
+    return `${selectedDesign.name} — Precio de venta: ${currency.symbol}${formatAmount(calculationResult.finalPrice, currency.code)}${materialsLine}`;
   };
 
   const shareCalculation = async () => {
@@ -343,6 +357,10 @@ export default function Calculos() {
         packagingId: selectedPackagingId,
         productionTimeMinutes: Math.max(1, Math.round(laborTimeSeconds / 60)),
         packagingQuantity: 1,
+        quantity: Math.max(1, parseInt(quantity, 10) || 1),
+        discountPercentage: discountPercentage
+          ? Number(discountPercentage)
+          : undefined,
         includeIndirectCosts,
         includeBenefits,
       });
@@ -651,6 +669,31 @@ export default function Calculos() {
             </Text>
           )}
 
+          <Text className={`mb-1 ${MUTED_TEXT}`}>
+            ¿Te pidieron varias piezas iguales? Indica cuántas y, si quieres,
+            un descuento por pedido grande.
+          </Text>
+          <View className="mb-3 flex-row gap-3">
+            <TextField
+              label="Cantidad de piezas"
+              value={quantity}
+              onChangeText={setQuantity}
+              keyboardType="numeric"
+              placeholder="1"
+              {...fieldProps}
+              className="mb-0 flex-1"
+            />
+            <TextField
+              label="Descuento (%) opcional"
+              value={discountPercentage}
+              onChangeText={setDiscountPercentage}
+              keyboardType="numeric"
+              placeholder="0"
+              {...fieldProps}
+              className="mb-0 flex-1"
+            />
+          </View>
+
           <Button
             label="Calcular costo"
             icon="calculator-outline"
@@ -686,6 +729,11 @@ export default function Calculos() {
                   Prestaciones legales: {currency.symbol}
                   {formatAmount(calculationResult.legalBenefitsCost, currency.code)}
                 </Text>
+                {calculationResult.quantity > 1 && (
+                  <Text className={INK_TEXT}>
+                    Cantidad de piezas: {calculationResult.quantity}
+                  </Text>
+                )}
                 <Text className="mt-2 text-lg font-extrabold text-brand-turquoise">
                   Costo total: {currency.symbol}
                   {formatAmount(calculationResult.totalCost, currency.code)}
@@ -697,6 +745,17 @@ export default function Calculos() {
                   Precio de venta sugerido: {currency.symbol}
                   {formatAmount(calculationResult.salePrice, currency.code)}
                 </Text>
+                {calculationResult.discountPercentage != null && (
+                  <>
+                    <Text className="font-extrabold text-brand-green">
+                      Descuento aplicado: {calculationResult.discountPercentage}%
+                    </Text>
+                    <Text className="text-lg font-extrabold text-brand-turquoise">
+                      Precio final con descuento: {currency.symbol}
+                      {formatAmount(calculationResult.finalPrice, currency.code)}
+                    </Text>
+                  </>
+                )}
                 <Button
                   label="Compartir cotización"
                   icon="share-social-outline"
@@ -724,7 +783,7 @@ export default function Calculos() {
             materialNames={selectedDesign.materials
               .map((item) => item.materialName)
               .filter(Boolean)}
-            salePrice={formatAmount(calculationResult.salePrice, currency.code)}
+            salePrice={formatAmount(calculationResult.finalPrice, currency.code)}
             currencySymbol={currency.symbol}
             calculatedAt={formatCalculatedAt(calculationResult.createdAt)}
             validUntil={formatValidUntil(calculationResult.validUntil)}

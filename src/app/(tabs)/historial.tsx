@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Share, Text, View } from "react-native";
@@ -29,6 +30,12 @@ export type HistoryEntry = {
   totalCost: number;
   profitMargin: number;
   salePrice: number;
+  // Cuántas piezas se cotizaron de una vez (pedidos grandes).
+  quantity: number;
+  // Descuento aplicado sobre el precio de venta, si se usó (null si no).
+  discountPercentage: number | null;
+  // Precio final ya con el descuento aplicado (igual a salePrice si no hubo descuento).
+  finalPrice: number;
   // Fecha hasta la que la cotización es válida (5 días desde que se
   // calculó). El registro en sí sigue en el historial hasta los 30 días,
   // el backend lo borra solo después de eso.
@@ -100,22 +107,35 @@ export default function Historial() {
   // QuoteShareCard (más abajo) para poder capturarla como imagen.
   const [sharingEntry, setSharingEntry] = useState<HistoryEntry | null>(null);
   const shareCardRef = useRef<View>(null);
+  // Solo la primera carga muestra "Cargando historial...". Las siguientes
+  // (cada vez que se vuelve a esta pestaña, ver useFocusEffect abajo) se
+  // actualizan en silencio: la lista vieja se queda visible hasta que llega
+  // la nueva, sin parpadeo.
+  const hasLoadedOnce = useRef(false);
 
   const loadHistory = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
       setHistory(await fetchHistory());
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
+      hasLoadedOnce.current = true;
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  // useFocusEffect (no useEffect) porque las 7 pestañas quedan montadas en
+  // memoria (Tabs de Expo Router): un useEffect normal solo se dispara la
+  // primera vez que abres Historial, y ya no vuelve a llamarse aunque
+  // hagas un cálculo nuevo y regreses aquí. Con useFocusEffect, se vuelve
+  // a cargar cada vez que esta pestaña recibe el foco.
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [loadHistory]),
+  );
 
   const confirmDelete = async () => {
     if (deletingEntry) {
@@ -152,7 +172,7 @@ export default function Historial() {
       entry.materialNames.length > 0
         ? `\nMateriales: ${entry.materialNames.join(", ")}`
         : "";
-    return `${entry.pieceName} — Precio de venta: ${currency.symbol}${formatAmount(entry.salePrice, currency.code)}${materialsLine}`;
+    return `${entry.pieceName} — Precio de venta: ${currency.symbol}${formatAmount(entry.finalPrice, currency.code)}${materialsLine}`;
   };
 
   const shareEntry = (entry: HistoryEntry) => {
@@ -267,7 +287,7 @@ export default function Historial() {
 
           <Text className="mt-2 text-lg font-extrabold text-brand-turquoise">
             Precio de venta: {currency.symbol}
-            {formatAmount(entry.salePrice, currency.code)}
+            {formatAmount(entry.finalPrice, currency.code)}
           </Text>
 
           <Pressable
@@ -291,6 +311,11 @@ export default function Historial() {
 
           {expandedIds.has(entry.id) && (
             <View className="mt-2 gap-0.5">
+              {entry.quantity > 1 && (
+                <Text className={INK_TEXT}>
+                  Cantidad de piezas: {entry.quantity}
+                </Text>
+              )}
               <Text className={INK_TEXT}>
                 Costo de materiales: {currency.symbol}
                 {formatAmount(entry.materialsCost, currency.code)}
@@ -318,6 +343,13 @@ export default function Historial() {
               <Text className="font-extrabold text-brand-green">
                 Margen de ganancia: {entry.profitMargin}%
               </Text>
+              {entry.discountPercentage != null && (
+                <Text className={INK_TEXT}>
+                  Precio de venta sin descuento: {currency.symbol}
+                  {formatAmount(entry.salePrice, currency.code)} (
+                  {entry.discountPercentage}% de descuento)
+                </Text>
+              )}
             </View>
           )}
         </Card>
@@ -346,7 +378,7 @@ export default function Historial() {
             ref={shareCardRef}
             pieceName={sharingEntry.pieceName}
             materialNames={sharingEntry.materialNames}
-            salePrice={formatAmount(sharingEntry.salePrice, currency.code)}
+            salePrice={formatAmount(sharingEntry.finalPrice, currency.code)}
             currencySymbol={currency.symbol}
             calculatedAt={formatCalculatedAt(sharingEntry.createdAt)}
             validUntil={formatValidUntil(sharingEntry.validUntil)}
