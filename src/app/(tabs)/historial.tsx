@@ -9,7 +9,9 @@ import {
   deleteHistoryEntry as deleteHistoryEntryApi,
   fetchHistory,
   getErrorMessage,
+  markCalculationSold,
 } from "@/api/client";
+import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FormError } from "@/components/form-error";
@@ -36,6 +38,10 @@ export type HistoryEntry = {
   discountPercentage: number | null;
   // Precio final ya con el descuento aplicado (igual a salePrice si no hubo descuento).
   finalPrice: number;
+  // true si ya se confirmó la venta de esta pieza — en ese momento se
+  // descontó el stock de materiales y empaque, y no se puede volver a
+  // marcar como vendida ni descontar dos veces.
+  isSold: boolean;
   // Fecha hasta la que la cotización es válida (5 días desde que se
   // calculó). El registro en sí sigue en el historial hasta los 30 días,
   // el backend lo borra solo después de eso.
@@ -103,6 +109,8 @@ export default function Historial() {
   const [deletingEntry, setDeletingEntry] = useState<HistoryEntry | null>(
     null,
   );
+  const [markingSoldEntry, setMarkingSoldEntry] =
+    useState<HistoryEntry | null>(null);
   // Entrada que se está compartiendo ahora mismo: se renderiza oculta en
   // QuoteShareCard (más abajo) para poder capturarla como imagen.
   const [sharingEntry, setSharingEntry] = useState<HistoryEntry | null>(null);
@@ -147,6 +155,18 @@ export default function Historial() {
       }
     }
     setDeletingEntry(null);
+  };
+
+  const confirmMarkSold = async () => {
+    if (markingSoldEntry) {
+      try {
+        await markCalculationSold(markingSoldEntry.id);
+        await loadHistory();
+      } catch (err) {
+        setError(getErrorMessage(err));
+      }
+    }
+    setMarkingSoldEntry(null);
   };
 
   const toggleExpanded = (id: string) => {
@@ -352,6 +372,21 @@ export default function Historial() {
               )}
             </View>
           )}
+
+          {entry.isSold ? (
+            <View className="mt-3 flex-row items-center gap-1 self-start rounded-full bg-brand-green px-3 py-1">
+              <Ionicons name="checkmark-circle" size={14} color={AppColors.white} />
+              <Text className="text-xs font-extrabold text-white">Vendida</Text>
+            </View>
+          ) : (
+            <Button
+              label="Marcar como vendida"
+              icon="checkmark-done-outline"
+              variant="secondary"
+              onPress={() => setMarkingSoldEntry(entry)}
+              className="mt-3 self-start px-4 py-2"
+            />
+          )}
         </Card>
         );
       })}
@@ -364,6 +399,15 @@ export default function Historial() {
         destructive
         onConfirm={confirmDelete}
         onCancel={() => setDeletingEntry(null)}
+      />
+
+      <ConfirmDialog
+        visible={Boolean(markingSoldEntry)}
+        title="Marcar como vendida"
+        message={`¿Confirmas que ya vendiste "${markingSoldEntry?.pieceName}"? Se descontará del stock los materiales y el empaque que usaste, y no se puede deshacer.`}
+        confirmLabel="Marcar como vendida"
+        onConfirm={confirmMarkSold}
+        onCancel={() => setMarkingSoldEntry(null)}
       />
 
       {/* Tarjeta con el estilo de la marca, renderizada fuera de pantalla:

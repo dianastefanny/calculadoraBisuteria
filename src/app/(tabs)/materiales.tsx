@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import {
@@ -55,21 +56,33 @@ export default function Materiales() {
     null,
   );
 
+  // Solo la primera carga muestra "Cargando materiales...". Las siguientes
+  // (cada vez que se vuelve a esta pestaña) se actualizan en silencio, para
+  // que el stock quede al día después de marcar una pieza como vendida en
+  // Historial, sin parpadeo en la lista.
+  const hasLoadedOnce = useRef(false);
+
   const loadMaterials = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
       setMaterials(await fetchMaterials());
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
+      hasLoadedOnce.current = true;
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadMaterials();
-  }, [loadMaterials]);
+  // useFocusEffect (no useEffect) porque las 7 pestañas quedan montadas en
+  // memoria (Tabs de Expo Router): un useEffect normal solo se dispara la
+  // primera vez que abres esta pestaña.
+  useFocusEffect(
+    useCallback(() => {
+      loadMaterials();
+    }, [loadMaterials]),
+  );
 
   const openCreate = () => {
     setEditingMaterial(null);

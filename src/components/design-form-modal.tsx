@@ -37,6 +37,7 @@ export type ApiDesign = {
   id: string;
   name: string;
   description: string;
+  reference: string;
   materials: ApiDesignMaterial[];
 };
 
@@ -73,6 +74,7 @@ export function DesignFormModal({
   >([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [reference, setReference] = useState("");
   const [designMaterials, setDesignMaterials] = useState<ApiDesignMaterial[]>(
     [],
   );
@@ -90,6 +92,7 @@ export function DesignFormModal({
     setError(null);
     setName(design?.name ?? "");
     setDescription(design?.description ?? "");
+    setReference(design?.reference ?? "");
     setDesignMaterials(design?.materials ?? []);
     setPickerMaterialId(null);
     setPickerQuantity("");
@@ -151,6 +154,7 @@ export function DesignFormModal({
       const payload = {
         name: name.trim(),
         description: description.trim(),
+        reference: reference.trim(),
         materials: designMaterials,
       };
       if (isEditing && design) {
@@ -207,6 +211,18 @@ export function DesignFormModal({
               value={description}
               onChangeText={setDescription}
               placeholder="Breve descripción del diseño"
+              className="mb-3"
+              autoCorrect={false}
+              {...fieldProps}
+            />
+
+            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+              Referencia del diseño (opcional)
+            </Text>
+            <TextField
+              value={reference}
+              onChangeText={setReference}
+              placeholder="Ej. AR-014"
               className="mb-3"
               autoCorrect={false}
               {...fieldProps}

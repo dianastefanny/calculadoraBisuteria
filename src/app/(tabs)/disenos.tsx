@@ -105,9 +105,16 @@ export default function Disenos() {
       {designs.map((design) => (
         <Card key={design.id} className="mb-3">
           <View className="flex-row items-start justify-between gap-2">
-            <Text className={`flex-1 text-[17px] font-extrabold ${INK_TEXT}`}>
-              {design.name}
-            </Text>
+            <View className="flex-1">
+              <Text className={`text-[17px] font-extrabold ${INK_TEXT}`}>
+                {design.name}
+              </Text>
+              {!!design.reference && (
+                <Text className="text-sm text-brand-turquoise">
+                  Ref: {design.reference}
+                </Text>
+              )}
+            </View>
             <Pressable
               onPress={() => openEdit(design)}
               hitSlop={8}

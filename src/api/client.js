@@ -16,6 +16,15 @@ import { Platform } from "react-native";
 
 const TOKEN_KEY = "auth_token";
 
+// Orden alfabético (A-Z, sin distinguir mayúsculas/tildes) para las listas de
+// catálogos (materiales, empaques, diseños, etc.), así se encuentran más
+// fácil tanto en sus pantallas como en los selectores de los formularios.
+function sortByName(items) {
+  return [...items].sort((a, b) =>
+    a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+  );
+}
+
 // expo-secure-store depende del Keychain/Keystore del sistema operativo, que
 // no existe en el navegador. En Web se usa localStorage en su lugar; en
 // iOS/Android se sigue usando SecureStore como antes.
@@ -43,7 +52,7 @@ async function clearStoredToken() {
 }
 
 const api = axios.create({
-  baseURL: "http://192.168.1.16:8000/api",
+  baseURL: "http://192.168.1.9:8000/api",
 });
 
 // Antes de enviar CUALQUIER petición, agrega automáticamente el token de
@@ -79,7 +88,14 @@ export function getErrorMessage(error) {
  * Crea la cuenta en el backend. No guarda el token: register.tsx redirige
  * al login para que el usuario entre con sus credenciales, igual que antes.
  */
-export async function registerUser({ name, lastName, phone, email, password, confirmPassword }) {
+export async function registerUser({
+  name,
+  lastName,
+  phone,
+  email,
+  password,
+  confirmPassword,
+}) {
   const { data } = await api.post("/register", {
     name,
     last_name: lastName,
@@ -138,7 +154,12 @@ export async function verifyResetCode({ email, code }) {
 /**
  * Paso 3: guarda la nueva contraseña usando el mismo código ya verificado.
  */
-export async function resetPassword({ email, code, password, confirmPassword }) {
+export async function resetPassword({
+  email,
+  code,
+  password,
+  confirmPassword,
+}) {
   const { data } = await api.post("/password/reset", {
     email,
     code,
@@ -183,7 +204,11 @@ export async function updateProfile({ name, lastName, phone, email }) {
 /**
  * Cambia la contraseña del usuario, verificando la contraseña actual.
  */
-export async function updatePassword({ currentPassword, newPassword, confirmNewPassword }) {
+export async function updatePassword({
+  currentPassword,
+  newPassword,
+  confirmNewPassword,
+}) {
   const { data } = await api.put("/password", {
     current_password: currentPassword,
     password: newPassword,
@@ -198,10 +223,12 @@ export async function updatePassword({ currentPassword, newPassword, confirmNewP
 
 export async function fetchCategories() {
   const { data } = await api.get("/material-categories");
-  return data.map((category) => ({
-    id: String(category.id),
-    name: category.name,
-  }));
+  return sortByName(
+    data.map((category) => ({
+      id: String(category.id),
+      name: category.name,
+    })),
+  );
 }
 
 // -----------------------------------------------------------------------
@@ -221,7 +248,10 @@ export const MATERIAL_UNIT_OPTIONS = [
 ];
 
 export function getUnitLabel(value) {
-  return MATERIAL_UNIT_OPTIONS.find((option) => option.value === value)?.label ?? value;
+  return (
+    MATERIAL_UNIT_OPTIONS.find((option) => option.value === value)?.label ??
+    value
+  );
 }
 
 function mapMaterialFromApi(material) {
@@ -238,10 +268,16 @@ function mapMaterialFromApi(material) {
 
 export async function fetchMaterials() {
   const { data } = await api.get("/materials");
-  return data.map(mapMaterialFromApi);
+  return sortByName(data.map(mapMaterialFromApi));
 }
 
-export async function createMaterial({ categoryId, name, unit, unitCost, stock }) {
+export async function createMaterial({
+  categoryId,
+  name,
+  unit,
+  unitCost,
+  stock,
+}) {
   const { data } = await api.post("/materials", {
     material_category_id: Number(categoryId),
     name,
@@ -252,7 +288,10 @@ export async function createMaterial({ categoryId, name, unit, unitCost, stock }
   return mapMaterialFromApi(data);
 }
 
-export async function updateMaterial(id, { categoryId, name, unit, unitCost, stock }) {
+export async function updateMaterial(
+  id,
+  { categoryId, name, unit, unitCost, stock },
+) {
   const { data } = await api.put(`/materials/${id}`, {
     material_category_id: Number(categoryId),
     name,
@@ -282,7 +321,7 @@ function mapPackagingFromApi(packaging) {
 
 export async function fetchPackagings() {
   const { data } = await api.get("/packagings");
-  return data.map(mapPackagingFromApi);
+  return sortByName(data.map(mapPackagingFromApi));
 }
 
 export async function createPackaging({ name, unitCost, stock }) {
@@ -316,6 +355,7 @@ function mapDesignFromApi(design) {
     id: String(design.id),
     name: design.name,
     description: design.description ?? "",
+    reference: design.reference ?? "",
     materials: (design.details ?? []).map((detail) => ({
       materialId: String(detail.material_id),
       quantity: String(detail.quantity),
@@ -327,13 +367,19 @@ function mapDesignFromApi(design) {
 
 export async function fetchDesigns() {
   const { data } = await api.get("/designs");
-  return data.map(mapDesignFromApi);
+  return sortByName(data.map(mapDesignFromApi));
 }
 
-export async function createDesign({ name, description, materials }) {
+export async function createDesign({
+  name,
+  description,
+  reference,
+  materials,
+}) {
   const { data } = await api.post("/designs", {
     name,
     description: description || undefined,
+    reference: reference || undefined,
     materials: materials.map((item) => ({
       material_id: Number(item.materialId),
       quantity: item.quantity,
@@ -342,10 +388,14 @@ export async function createDesign({ name, description, materials }) {
   return mapDesignFromApi(data);
 }
 
-export async function updateDesign(id, { name, description, materials }) {
+export async function updateDesign(
+  id,
+  { name, description, reference, materials },
+) {
   const { data } = await api.put(`/designs/${id}`, {
     name,
     description: description || undefined,
+    reference: reference || undefined,
     materials: materials.map((item) => ({
       material_id: Number(item.materialId),
       quantity: item.quantity,
@@ -428,10 +478,12 @@ export async function updateConfiguration({
 
 export async function fetchCostTypes() {
   const { data } = await api.get("/cost-types");
-  return data.map((costType) => ({
-    id: String(costType.id),
-    name: costType.name,
-  }));
+  return sortByName(
+    data.map((costType) => ({
+      id: String(costType.id),
+      name: costType.name,
+    })),
+  );
 }
 
 export async function createCostType({ name }) {
@@ -456,7 +508,7 @@ function mapIndirectCostFromApi(indirectCost) {
 
 export async function fetchIndirectCosts() {
   const { data } = await api.get("/indirect-costs");
-  return data.map(mapIndirectCostFromApi);
+  return sortByName(data.map(mapIndirectCostFromApi));
 }
 
 export async function createIndirectCost({ costTypeId, name, monthlyAmount }) {
@@ -468,7 +520,10 @@ export async function createIndirectCost({ costTypeId, name, monthlyAmount }) {
   return mapIndirectCostFromApi(data);
 }
 
-export async function updateIndirectCost(id, { costTypeId, name, monthlyAmount }) {
+export async function updateIndirectCost(
+  id,
+  { costTypeId, name, monthlyAmount },
+) {
   const { data } = await api.put(`/indirect-costs/${id}`, {
     cost_type_id: Number(costTypeId),
     name,
@@ -487,10 +542,12 @@ export async function deleteIndirectCost(id) {
 
 export async function fetchBenefitTypes() {
   const { data } = await api.get("/benefit-types");
-  return data.map((benefitType) => ({
-    id: String(benefitType.id),
-    name: benefitType.name,
-  }));
+  return sortByName(
+    data.map((benefitType) => ({
+      id: String(benefitType.id),
+      name: benefitType.name,
+    })),
+  );
 }
 
 export async function createBenefitType({ name }) {
@@ -516,7 +573,7 @@ function mapBenefitFromApi(benefit) {
 
 export async function fetchBenefits() {
   const { data } = await api.get("/benefits");
-  return data.map(mapBenefitFromApi);
+  return sortByName(data.map(mapBenefitFromApi));
 }
 
 export async function createBenefit({ benefitTypeId, name, percentage }) {
@@ -569,6 +626,7 @@ function mapCalculationToHistoryEntry(calculation) {
         ? Number(calculation.discount_percentage)
         : null,
     finalPrice: Number(calculation.final_price),
+    isSold: Boolean(calculation.is_sold),
     validUntil: calculation.valid_until,
     createdAt: calculation.created_at,
   };
@@ -581,6 +639,17 @@ export async function fetchHistory() {
 
 export async function deleteHistoryEntry(id) {
   await api.delete(`/calculations/${id}`);
+}
+
+/**
+ * Marca una cotización como vendida: descuenta del stock los materiales de
+ * la receta y el empaque usados (multiplicados por la cantidad de piezas).
+ * El backend rechaza la operación si no hay suficiente stock de algo, o si
+ * esta cotización ya se había marcado como vendida antes.
+ */
+export async function markCalculationSold(id) {
+  const { data } = await api.post(`/calculations/${id}/mark-sold`);
+  return mapCalculationToHistoryEntry(data);
 }
 
 export async function calculatePieceCost({
@@ -597,7 +666,9 @@ export async function calculatePieceCost({
     design_id: Number(designId),
     production_time_minutes: productionTimeMinutes,
     packaging_id: packagingId ? Number(packagingId) : undefined,
-    packaging_quantity: packagingId ? packagingQuantity || undefined : undefined,
+    packaging_quantity: packagingId
+      ? packagingQuantity || undefined
+      : undefined,
     quantity: quantity || undefined,
     discount_percentage: discountPercentage || undefined,
     include_indirect_costs: includeIndirectCosts,
@@ -614,7 +685,9 @@ export async function calculatePieceCost({
     salePrice: Number(data.sale_price),
     quantity: Number(data.quantity),
     discountPercentage:
-      data.discount_percentage != null ? Number(data.discount_percentage) : null,
+      data.discount_percentage != null
+        ? Number(data.discount_percentage)
+        : null,
     finalPrice: Number(data.final_price),
     validUntil: data.valid_until,
     createdAt: data.created_at,

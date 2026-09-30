@@ -79,8 +79,9 @@ type FinalCalculationResult = {
   // ganancia sea exactamente ese porcentaje sobre el precio final (no sobre
   // el costo). Es el único valor de este resultado que cambia con el margen.
   salePrice: number;
-  // Cuántas piezas se cotizaron de una vez (pedidos grandes). Materiales,
-  // empaque y mano de obra ya vienen multiplicados por esta cantidad.
+  // Cuántas piezas se cotizaron de una vez (pedidos grandes). Materiales y
+  // mano de obra ya vienen multiplicados por esta cantidad; el empaque no
+  // (se asume uno solo para todo el pedido, no uno por pieza).
   quantity: number;
   // Descuento aplicado sobre el precio de venta, si se usó (null si no).
   discountPercentage: number | null;
@@ -176,9 +177,9 @@ export default function Calculos() {
   const [manualMinutes, setManualMinutes] = useState("");
 
   // Cuántas piezas iguales se cotizan de una vez (pedidos grandes). El
-  // tiempo, los materiales y el empaque son "por pieza"; el backend los
-  // multiplica por esta cantidad. Descuento es opcional, para esos mismos
-  // pedidos grandes.
+  // tiempo y los materiales son "por pieza"; el backend los multiplica por
+  // esta cantidad (el empaque no, se asume uno solo para todo el pedido).
+  // Descuento es opcional, para esos mismos pedidos grandes.
   const [quantity, setQuantity] = useState("1");
   const [discountPercentage, setDiscountPercentage] = useState("");
 
