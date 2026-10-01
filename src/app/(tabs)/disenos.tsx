@@ -12,7 +12,9 @@ import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DesignFormModal, type ApiDesign } from "@/components/design-form-modal";
+import { EmptyState } from "@/components/empty-state";
 import { FormError } from "@/components/form-error";
+import { SearchField, matchesSearch } from "@/components/search-field";
 import { TabScreen } from "@/components/tab-screen";
 import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
 
@@ -35,6 +37,7 @@ export default function Disenos() {
   const [formVisible, setFormVisible] = useState(false);
   const [editingDesign, setEditingDesign] = useState<ApiDesign | null>(null);
   const [deletingDesign, setDeletingDesign] = useState<ApiDesign | null>(null);
+  const [search, setSearch] = useState("");
 
   const loadDesigns = useCallback(async () => {
     setLoading(true);
@@ -51,6 +54,12 @@ export default function Disenos() {
   useEffect(() => {
     loadDesigns();
   }, [loadDesigns]);
+
+  const filteredDesigns = designs.filter(
+    (design) =>
+      matchesSearch(design.name, search) ||
+      matchesSearch(design.reference, search),
+  );
 
   const openCreate = () => {
     setEditingDesign(null);
@@ -88,6 +97,13 @@ export default function Disenos() {
 
       <Button label="+ Nuevo diseño" onPress={openCreate} className="mb-4" />
 
+      <SearchField
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar por nombre o referencia..."
+        className="mb-3"
+      />
+
       <FormError message={error} />
 
       {loading && (
@@ -95,14 +111,14 @@ export default function Disenos() {
       )}
 
       {!loading && designs.length === 0 && !error && (
-        <Card className="mb-3">
-          <Text className={`text-center ${MUTED_TEXT}`}>
-            Aún no has creado ningún diseño.
-          </Text>
-        </Card>
+        <EmptyState message="Aún no has creado ningún diseño." />
       )}
 
-      {designs.map((design) => (
+      {!loading && designs.length > 0 && filteredDesigns.length === 0 && (
+        <EmptyState message="No se encontró ningún diseño con ese nombre o referencia." />
+      )}
+
+      {filteredDesigns.map((design) => (
         <Card key={design.id} className="mb-3">
           <View className="flex-row items-start justify-between gap-2">
             <View className="flex-1">

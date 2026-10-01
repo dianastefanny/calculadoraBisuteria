@@ -52,7 +52,7 @@ async function clearStoredToken() {
 }
 
 const api = axios.create({
-  baseURL: "http://192.168.1.9:8000/api",
+  baseURL: "http://192.168.1.8:8000/api",
 });
 
 // Antes de enviar CUALQUIER petición, agrega automáticamente el token de
@@ -611,6 +611,7 @@ function mapCalculationToHistoryEntry(calculation) {
   return {
     id: String(calculation.id),
     pieceName: calculation.design?.name ?? "Diseño eliminado",
+    pieceReference: calculation.design?.reference ?? "",
     materialNames,
     materialsCost: Number(calculation.materials_cost),
     packagingCost: Number(calculation.packaging_cost),

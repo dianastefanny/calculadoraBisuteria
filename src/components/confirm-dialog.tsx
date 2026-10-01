@@ -7,18 +7,28 @@ export type ConfirmDialogProps = {
   title: string;
   message: string;
   confirmLabel?: string;
-  cancelLabel?: string;
+  // Por defecto muestra "Cancelar". Pasar null (no solo omitirlo) lo
+  // convierte en un simple aviso de un solo botón — útil para mostrar un
+  // error importante que el usuario deba confirmar que leyó, en vez de una
+  // pregunta con dos opciones.
+  cancelLabel?: string | null;
   destructive?: boolean;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 };
 
 /**
- * Ventana emergente que le pregunta al usuario "¿estás seguro?" antes de
- * hacer algo importante (por ejemplo, cerrar sesión). Se usa en vez de la
- * alerta nativa del sistema (Alert.alert) porque esa alerta NO funciona en
- * la versión web de la app; este componente sí funciona igual en celular y
- * en navegador.
+ * Ventana emergente centrada, usada tanto para preguntar "¿estás seguro?"
+ * antes de algo importante (pasando cancelLabel) como para mostrar un aviso
+ * de un solo botón (sin cancelLabel) — por ejemplo, que no se pudo marcar
+ * una pieza como vendida por falta de stock. A diferencia de FormError (que
+ * se muestra arriba de la pantalla y puede quedar fuera de la vista si el
+ * usuario está desplazado hacia abajo en una lista larga), este aviso
+ * siempre aparece centrado, sin importar en qué parte de la lista se esté.
+ *
+ * Se usa en vez de la alerta nativa del sistema (Alert.alert) porque esa
+ * alerta NO funciona en la versión web de la app; este componente sí
+ * funciona igual en celular y en navegador.
  *
  * Cómo se controla: la pantalla que lo usa guarda en su propio estado si el
  * diálogo debe estar visible o no (visible={true/false}), y decide qué pasa
@@ -37,16 +47,18 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const closeOnBackdrop = onCancel ?? onConfirm;
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onCancel}
+      onRequestClose={closeOnBackdrop}
     >
-      {/* Fondo oscuro semitransparente: tocarlo fuera de la tarjeta cancela igual que el botón "Cancelar". */}
+      {/* Fondo oscuro semitransparente: tocarlo fuera de la tarjeta cierra igual que el botón de cancelar (o el único botón, si no hay cancelar). */}
       <Pressable
-        onPress={onCancel}
+        onPress={closeOnBackdrop}
         className="flex-1 items-center justify-center bg-black/50 p-6"
       >
         <Pressable
@@ -58,9 +70,13 @@ export function ConfirmDialog({
           <Text className={`mt-2 ${MUTED_TEXT}`}>{message}</Text>
 
           <View className="mt-5 flex-row justify-end gap-4">
-            <Pressable onPress={onCancel} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>{cancelLabel}</Text>
-            </Pressable>
+            {cancelLabel && (
+              <Pressable onPress={onCancel} hitSlop={8}>
+                <Text className={`font-bold ${MUTED_TEXT}`}>
+                  {cancelLabel}
+                </Text>
+              </Pressable>
+            )}
             <Pressable onPress={onConfirm} hitSlop={8}>
               <Text
                 className={`font-bold ${destructive ? "text-brand-error" : "text-brand-green"}`}

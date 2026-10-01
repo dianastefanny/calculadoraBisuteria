@@ -11,11 +11,13 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { FormError } from "@/components/form-error";
 import {
   PackagingFormModal,
   type ApiPackaging,
 } from "@/components/packaging-form-modal";
+import { SearchField, matchesSearch } from "@/components/search-field";
 import { TabScreen } from "@/components/tab-screen";
 import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
 import { formatAmount, useCurrency, type CurrencyOption } from "@/constants/currency-store";
@@ -53,6 +55,7 @@ export default function Empaques() {
   );
   const [deletingPackaging, setDeletingPackaging] =
     useState<ApiPackaging | null>(null);
+  const [search, setSearch] = useState("");
 
   // Solo la primera carga muestra "Cargando empaques...". Las siguientes
   // (cada vez que se vuelve a esta pestaña) se actualizan en silencio, para
@@ -80,6 +83,10 @@ export default function Empaques() {
     useCallback(() => {
       loadPackagings();
     }, [loadPackagings]),
+  );
+
+  const filteredPackagingOptions = packagingOptions.filter((packaging) =>
+    matchesSearch(packaging.name, search),
   );
 
   const openCreate = () => {
@@ -118,6 +125,13 @@ export default function Empaques() {
 
       <Button label="+ Nuevo empaque" onPress={openCreate} className="mb-4" />
 
+      <SearchField
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar empaque..."
+        className="mb-3"
+      />
+
       <FormError message={error} />
 
       {loading && (
@@ -125,14 +139,16 @@ export default function Empaques() {
       )}
 
       {!loading && packagingOptions.length === 0 && !error && (
-        <Card className="mb-3">
-          <Text className={`text-center ${MUTED_TEXT}`}>
-            Aún no has creado ningún empaque.
-          </Text>
-        </Card>
+        <EmptyState message="Aún no has creado ningún empaque." />
       )}
 
-      {packagingOptions.map((packaging) => {
+      {!loading &&
+        packagingOptions.length > 0 &&
+        filteredPackagingOptions.length === 0 && (
+          <EmptyState message="No se encontró ningún empaque con ese nombre." />
+        )}
+
+      {filteredPackagingOptions.map((packaging) => {
         const status = getPackagingStatus(packaging);
         const isAvailable = status === "Disponible";
         return (

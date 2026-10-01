@@ -12,11 +12,13 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { FormError } from "@/components/form-error";
 import {
   MaterialFormModal,
   type ApiMaterial,
 } from "@/components/material-form-modal";
+import { SearchField, matchesSearch } from "@/components/search-field";
 import { TabScreen } from "@/components/tab-screen";
 import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
 import { formatAmount, useCurrency, type CurrencyOption } from "@/constants/currency-store";
@@ -55,6 +57,7 @@ export default function Materiales() {
   const [deletingMaterial, setDeletingMaterial] = useState<ApiMaterial | null>(
     null,
   );
+  const [search, setSearch] = useState("");
 
   // Solo la primera carga muestra "Cargando materiales...". Las siguientes
   // (cada vez que se vuelve a esta pestaña) se actualizan en silencio, para
@@ -94,6 +97,10 @@ export default function Materiales() {
     setFormVisible(true);
   };
 
+  const filteredMaterials = materials.filter((material) =>
+    matchesSearch(material.name, search),
+  );
+
   const confirmDelete = async () => {
     if (deletingMaterial) {
       try {
@@ -122,6 +129,13 @@ export default function Materiales() {
 
       <Button label="+ Nuevo material" onPress={openCreate} className="mb-4" />
 
+      <SearchField
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar material..."
+        className="mb-3"
+      />
+
       <FormError message={error} />
 
       {loading && (
@@ -129,14 +143,14 @@ export default function Materiales() {
       )}
 
       {!loading && materials.length === 0 && !error && (
-        <Card className="mb-3">
-          <Text className={`text-center ${MUTED_TEXT}`}>
-            Aún no has creado ningún material.
-          </Text>
-        </Card>
+        <EmptyState message="Aún no has creado ningún material." />
       )}
 
-      {materials.map((material) => {
+      {!loading && materials.length > 0 && filteredMaterials.length === 0 && (
+        <EmptyState message="No se encontró ningún material con ese nombre." />
+      )}
+
+      {filteredMaterials.map((material) => {
         const status = getMaterialStatus(material);
         const isAvailable = status === "Disponible";
         return (

@@ -14,8 +14,10 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { FormError } from "@/components/form-error";
 import { QuoteShareCard } from "@/components/quote-share-card";
+import { SearchField, matchesSearch } from "@/components/search-field";
 import { TabScreen } from "@/components/tab-screen";
 import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
 import { formatAmount, useCurrency } from "@/constants/currency-store";
@@ -23,6 +25,7 @@ import { formatAmount, useCurrency } from "@/constants/currency-store";
 export type HistoryEntry = {
   id: string;
   pieceName: string;
+  pieceReference: string;
   materialNames: string[];
   materialsCost: number;
   packagingCost: number;
@@ -111,6 +114,12 @@ export default function Historial() {
   );
   const [markingSoldEntry, setMarkingSoldEntry] =
     useState<HistoryEntry | null>(null);
+  // Error de "marcar como vendida" (ej. falta de stock): se muestra en una
+  // ventana emergente, no en el aviso de arriba de la pantalla, porque el
+  // botón que la dispara puede estar en una tarjeta muy abajo en la lista y
+  // el aviso de arriba quedaría fuera de la vista.
+  const [soldError, setSoldError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   // Entrada que se está compartiendo ahora mismo: se renderiza oculta en
   // QuoteShareCard (más abajo) para poder capturarla como imagen.
   const [sharingEntry, setSharingEntry] = useState<HistoryEntry | null>(null);
@@ -145,6 +154,12 @@ export default function Historial() {
     }, [loadHistory]),
   );
 
+  const filteredHistory = history.filter(
+    (entry) =>
+      matchesSearch(entry.pieceName, search) ||
+      matchesSearch(entry.pieceReference, search),
+  );
+
   const confirmDelete = async () => {
     if (deletingEntry) {
       try {
@@ -163,7 +178,7 @@ export default function Historial() {
         await markCalculationSold(markingSoldEntry.id);
         await loadHistory();
       } catch (err) {
-        setError(getErrorMessage(err));
+        setSoldError(getErrorMessage(err));
       }
     }
     setMarkingSoldEntry(null);
@@ -246,6 +261,13 @@ export default function Historial() {
         </View>
       </View>
 
+      <SearchField
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar por nombre o referencia..."
+        className="mb-3"
+      />
+
       <FormError message={error} />
 
       {loading && (
@@ -253,21 +275,28 @@ export default function Historial() {
       )}
 
       {!loading && history.length === 0 && !error && (
-        <Card className="mb-3">
-          <Text className={`text-center ${MUTED_TEXT}`}>
-            Aún no has cotizado ninguna pieza.
-          </Text>
-        </Card>
+        <EmptyState message="Aún no has cotizado ninguna pieza." />
       )}
 
-      {history.map((entry) => {
+      {!loading && history.length > 0 && filteredHistory.length === 0 && (
+        <EmptyState message="No se encontró ninguna pieza con ese nombre o referencia." />
+      )}
+
+      {filteredHistory.map((entry) => {
         const expired = isQuoteExpired(entry.validUntil);
         return (
         <Card key={entry.id} className="mb-3">
           <View className="flex-row items-start justify-between gap-2">
-            <Text className={`flex-1 text-[17px] font-extrabold ${INK_TEXT}`}>
-              {entry.pieceName}
-            </Text>
+            <View className="flex-1">
+              <Text className={`text-[17px] font-extrabold ${INK_TEXT}`}>
+                {entry.pieceName}
+              </Text>
+              {!!entry.pieceReference && (
+                <Text className="text-sm text-brand-turquoise">
+                  Ref: {entry.pieceReference}
+                </Text>
+              )}
+            </View>
             <View
               className={`rounded-full px-2 py-1 ${
                 expired ? "bg-brand-error" : "bg-brand-green"
@@ -408,6 +437,15 @@ export default function Historial() {
         confirmLabel="Marcar como vendida"
         onConfirm={confirmMarkSold}
         onCancel={() => setMarkingSoldEntry(null)}
+      />
+
+      <ConfirmDialog
+        visible={Boolean(soldError)}
+        title="No se pudo marcar como vendida"
+        message={soldError ?? ""}
+        confirmLabel="Entendido"
+        cancelLabel={null}
+        onConfirm={() => setSoldError(null)}
       />
 
       {/* Tarjeta con el estilo de la marca, renderizada fuera de pantalla:
