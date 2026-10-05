@@ -44,8 +44,10 @@ export default function Inicio() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // "loading" arranca en true, así que solo la primera carga muestra
+  // "Cargando..."; al deslizar para actualizar se recarga en silencio (ya
+  // se ve la ruedita) sin que las tarjetas parpadeen.
   const loadStatistics = useCallback(async () => {
-    setLoading(true);
     try {
       setStats(await fetchStatistics());
       setError(null);
@@ -101,7 +103,7 @@ export default function Inicio() {
   );
 
   return (
-    <TabScreen active="inicio">
+    <TabScreen active="inicio" onRefresh={loadStatistics}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="home-outline" size={26} color={AppColors.green} />
         <View className="flex-1">

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "calculadoraBisuteria",
+    "name": "Cuenta Cuentas",
     "slug": "calculadoraBisuteria",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,11 +8,11 @@
     "scheme": "calculadorabisuteria",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0D3B66",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -36,7 +36,15 @@
         }
       ],
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cuenta Cuentas necesita acceder a tus fotos para agregar la imagen de tus diseños.",
+          "cameraPermission": "Cuenta Cuentas necesita usar la cámara para tomar la foto de tus diseños.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

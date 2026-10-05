@@ -114,7 +114,7 @@ export default function Materiales() {
   };
 
   return (
-    <TabScreen active="materiales">
+    <TabScreen active="materiales" onRefresh={loadMaterials}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="cube-outline" size={26} color={AppColors.green} />
         <View className="flex-1">

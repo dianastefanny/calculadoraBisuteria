@@ -10,7 +10,7 @@ import { Card } from "@/components/card";
 import { type ApiDesign } from "@/components/design-form-modal";
 import { FormError } from "@/components/form-error";
 import { type ApiPackaging } from "@/components/packaging-form-modal";
-import { QuoteShareCard } from "@/components/quote-share-card";
+import { QuoteShareCard, useQuoteImageReady } from "@/components/quote-share-card";
 import { SelectField } from "@/components/select-field";
 import { TabScreen } from "@/components/tab-screen";
 import { TextField } from "@/components/text-field";
@@ -151,6 +151,7 @@ export default function Calculos() {
   const currency = useCurrency();
   const fieldProps = useFieldTintProps();
   const shareCardRef = useRef<View>(null);
+  const { onImagePending, onImageSettled, waitForImage } = useQuoteImageReady();
 
   const [designs, setDesigns] = useState<ApiDesign[]>([]);
   const [packagingOptions, setPackagingOptions] = useState<ApiPackaging[]>([]);
@@ -199,8 +200,13 @@ export default function Calculos() {
   );
 
 
+  // Solo la primera carga muestra "Cargando diseños y empaques...". Las
+  // siguientes (al deslizar para actualizar, que ya muestra su propia
+  // ruedita) se hacen en silencio, mismo patrón que Historial.
+  const hasLoadedOnce = useRef(false);
+
   const loadOptions = useCallback(async () => {
-    setLoadingOptions(true);
+    if (!hasLoadedOnce.current) setLoadingOptions(true);
     try {
       const [designsData, packagingsData] = await Promise.all([
         fetchDesigns(),
@@ -212,6 +218,7 @@ export default function Calculos() {
     } catch (err) {
       setOptionsError(getErrorMessage(err));
     } finally {
+      hasLoadedOnce.current = true;
       setLoadingOptions(false);
     }
   }, []);
@@ -219,6 +226,37 @@ export default function Calculos() {
   useEffect(() => {
     loadOptions();
   }, [loadOptions]);
+
+  // Deja la calculadora como recién abierta: sin diseño, sin tiempo y sin
+  // resultado. El cálculo anterior no se pierde: ya quedó guardado en
+  // Historial.
+  const resetCalculator = () => {
+    setSelectedDesignId(null);
+    setSelectedPackagingId(null);
+    setTimeEntryMode("stopwatch");
+    setIsRunning(false);
+    setStopwatchFinished(false);
+    setElapsedSeconds(0);
+    setManualHours("");
+    setManualMinutes("");
+    setQuantity("1");
+    setDiscountPercentage("");
+    setIncludeIndirectCosts(true);
+    setIncludeBenefits(true);
+    setCalculationResult(null);
+    setCalculationError(null);
+  };
+
+  // Deslizar hacia abajo: recarga diseños y empaques (por si se creó o editó
+  // alguno en otra pestaña) y limpia la calculadora. Excepción: si el
+  // cronómetro lleva tiempo contado y todavía no se ha calculado, no se
+  // borra — es fácil hacer el gesto sin querer y se perdería ese tiempo.
+  const refreshCalculator = async () => {
+    const stopwatchInProgress =
+      calculationResult === null && (isRunning || elapsedSeconds > 0);
+    if (!stopwatchInProgress) resetCalculator();
+    await loadOptions();
+  };
 
   useEffect(() => {
     if (!isRunning) return;
@@ -330,6 +368,7 @@ export default function Calculos() {
       const canShareImage =
         (await Sharing.isAvailableAsync()) && shareCardRef.current;
       if (canShareImage) {
+        await waitForImage(selectedDesign.imageUrl);
         const uri = await captureRef(shareCardRef, {
           format: "png",
           quality: 1,
@@ -374,7 +413,7 @@ export default function Calculos() {
   };
 
   return (
-    <TabScreen active="calculos">
+    <TabScreen active="calculos" onRefresh={refreshCalculator}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="calculator-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
@@ -764,6 +803,12 @@ export default function Calculos() {
                   onPress={shareCalculation}
                   className="mt-3"
                 />
+                <Button
+                  label="Nuevo cálculo"
+                  icon="refresh"
+                  onPress={resetCalculator}
+                  className="mt-2"
+                />
               </View>
             )}
           </Card>
@@ -781,6 +826,9 @@ export default function Calculos() {
           <QuoteShareCard
             ref={shareCardRef}
             pieceName={selectedDesign.name}
+            imageUrl={selectedDesign.imageUrl}
+            onImagePending={onImagePending}
+            onImageSettled={onImageSettled}
             materialNames={selectedDesign.materials
               .map((item) => item.materialName)
               .filter(Boolean)}

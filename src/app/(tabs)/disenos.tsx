@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useCallback, useEffect, useState } from "react";
+import { Image } from "expo-image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import {
@@ -39,14 +40,20 @@ export default function Disenos() {
   const [deletingDesign, setDeletingDesign] = useState<ApiDesign | null>(null);
   const [search, setSearch] = useState("");
 
+  // Solo la primera carga muestra "Cargando diseños...". Las siguientes (al
+  // deslizar para actualizar, que ya muestra su propia ruedita, o después de
+  // guardar/eliminar) se hacen en silencio, mismo patrón que Materiales.
+  const hasLoadedOnce = useRef(false);
+
   const loadDesigns = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
       setDesigns(await fetchDesigns());
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
+      hasLoadedOnce.current = true;
       setLoading(false);
     }
   }, []);
@@ -84,7 +91,7 @@ export default function Disenos() {
   };
 
   return (
-    <TabScreen active="disenos">
+    <TabScreen active="disenos" onRefresh={loadDesigns}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="sparkles-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
@@ -121,6 +128,22 @@ export default function Disenos() {
       {filteredDesigns.map((design) => (
         <Card key={design.id} className="mb-3">
           <View className="flex-row items-start justify-between gap-2">
+            {design.imageUrl ? (
+              <Image
+                source={{ uri: design.imageUrl }}
+                style={{ width: 56, height: 56, borderRadius: 10 }}
+                contentFit="cover"
+                transition={150}
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <View
+                style={{ width: 56, height: 56, borderRadius: 10 }}
+                className="items-center justify-center bg-brand-turquoise/10"
+              >
+                <Ionicons name="image-outline" size={22} color={theme.mutedInk} />
+              </View>
+            )}
             <View className="flex-1">
               <Text className={`text-[17px] font-extrabold ${INK_TEXT}`}>
                 {design.name}

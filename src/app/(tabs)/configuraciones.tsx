@@ -86,18 +86,27 @@ export default function Configuraciones() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchMe()
-      .then((profile) => {
-        setName(profile.name);
-        setLastName(profile.lastName);
-        setPhone(profile.phone);
-        setEmail(profile.email);
-        setProfileError(null);
-      })
-      .catch((err) => setProfileError(getErrorMessage(err)))
-      .finally(() => setProfileLoading(false));
+  // Los "...Loading" de esta pantalla arrancan en true y no se vuelven a
+  // activar: solo la primera carga muestra "Cargando..."; al deslizar para
+  // actualizar (o después de guardar) se recarga en silencio, sin parpadeo.
+  const loadProfile = useCallback(async () => {
+    try {
+      const profile = await fetchMe();
+      setName(profile.name);
+      setLastName(profile.lastName);
+      setPhone(profile.phone);
+      setEmail(profile.email);
+      setProfileError(null);
+    } catch (err) {
+      setProfileError(getErrorMessage(err));
+    } finally {
+      setProfileLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   // Guarda un cambio de perfil en el backend y actualiza los 4 campos con
   // la respuesta real, sin importar cuál fila se haya editado.
@@ -137,18 +146,24 @@ export default function Configuraciones() {
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchConfiguration()
-      .then((configuration) => {
-        setMonthlySalary(configuration.monthlySalary);
-        setMonthlyProductiveHours(configuration.monthlyWorkingHours);
-        setMonthlyProduction(configuration.monthlyProduction);
-        setDefaultMargin(configuration.defaultMargin);
-        setConfigError(null);
-      })
-      .catch((err) => setConfigError(getErrorMessage(err)))
-      .finally(() => setConfigLoading(false));
+  const loadConfig = useCallback(async () => {
+    try {
+      const configuration = await fetchConfiguration();
+      setMonthlySalary(configuration.monthlySalary);
+      setMonthlyProductiveHours(configuration.monthlyWorkingHours);
+      setMonthlyProduction(configuration.monthlyProduction);
+      setDefaultMargin(configuration.defaultMargin);
+      setConfigError(null);
+    } catch (err) {
+      setConfigError(getErrorMessage(err));
+    } finally {
+      setConfigLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   // Guarda un cambio de configuración en el backend y actualiza los campos
   // con la respuesta real (fuente de verdad), sin importar cuál fila se
@@ -196,7 +211,6 @@ export default function Configuraciones() {
     useState<ApiIndirectCost | null>(null);
 
   const loadIndirectCosts = useCallback(async () => {
-    setIndirectCostsLoading(true);
     try {
       setIndirectCosts(await fetchIndirectCosts());
       setIndirectCostsError(null);
@@ -249,7 +263,6 @@ export default function Configuraciones() {
   );
 
   const loadBenefits = useCallback(async () => {
-    setBenefitsLoading(true);
     try {
       setBenefits(await fetchBenefits());
       setBenefitsError(null);
@@ -541,8 +554,18 @@ export default function Configuraciones() {
     );
   };
 
+  // Deslizar hacia abajo: recarga las cuatro secciones a la vez.
+  const refreshAll = async () => {
+    await Promise.all([
+      loadProfile(),
+      loadConfig(),
+      loadIndirectCosts(),
+      loadBenefits(),
+    ]);
+  };
+
   return (
-    <TabScreen active="configuraciones">
+    <TabScreen active="configuraciones" onRefresh={refreshAll}>
       <Text className={`mb-6 text-xl font-extrabold ${INK_TEXT}`}>
         Configuraciones
       </Text>

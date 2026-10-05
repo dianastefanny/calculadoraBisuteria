@@ -52,7 +52,7 @@ async function clearStoredToken() {
 }
 
 const api = axios.create({
-  baseURL: "http://192.168.1.8:8000/api",
+  baseURL: "http://192.168.1.10:8000/api",
 });
 
 // Antes de enviar CUALQUIER petición, agrega automáticamente el token de
@@ -356,6 +356,7 @@ function mapDesignFromApi(design) {
     name: design.name,
     description: design.description ?? "",
     reference: design.reference ?? "",
+    imageUrl: design.image_url ?? null,
     materials: (design.details ?? []).map((detail) => ({
       materialId: String(detail.material_id),
       quantity: String(detail.quantity),
@@ -406,6 +407,30 @@ export async function updateDesign(
 
 export async function deleteDesign(id) {
   await api.delete(`/designs/${id}`);
+}
+
+/**
+ * Sube (o reemplaza) la foto de un diseño. "imageUri" es la ruta local de la
+ * foto ya comprimida en el celular; se envía como archivo en un FormData
+ * porque Laravel solo recibe archivos en peticiones multipart.
+ */
+export async function uploadDesignImage(id, imageUri) {
+  const formData = new FormData();
+  formData.append("image", {
+    uri: imageUri,
+    name: `diseno-${id}.jpg`,
+    type: "image/jpeg",
+  });
+
+  const { data } = await api.post(`/designs/${id}/image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return mapDesignFromApi(data);
+}
+
+export async function deleteDesignImage(id) {
+  const { data } = await api.delete(`/designs/${id}/image`);
+  return mapDesignFromApi(data);
 }
 
 // -----------------------------------------------------------------------
@@ -612,6 +637,7 @@ function mapCalculationToHistoryEntry(calculation) {
     id: String(calculation.id),
     pieceName: calculation.design?.name ?? "Diseño eliminado",
     pieceReference: calculation.design?.reference ?? "",
+    pieceImageUrl: calculation.design?.image_url ?? null,
     materialNames,
     materialsCost: Number(calculation.materials_cost),
     packagingCost: Number(calculation.packaging_cost),

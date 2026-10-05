@@ -112,7 +112,7 @@ export default function Empaques() {
   };
 
   return (
-    <TabScreen active="empaques">
+    <TabScreen active="empaques" onRefresh={loadPackagings}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="gift-outline" size={26} color={AppColors.green} />
         <View className="flex-1">

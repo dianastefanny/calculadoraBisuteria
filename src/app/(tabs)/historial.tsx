@@ -16,7 +16,7 @@ import { Card } from "@/components/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { FormError } from "@/components/form-error";
-import { QuoteShareCard } from "@/components/quote-share-card";
+import { QuoteShareCard, useQuoteImageReady } from "@/components/quote-share-card";
 import { SearchField, matchesSearch } from "@/components/search-field";
 import { TabScreen } from "@/components/tab-screen";
 import { AppColors, INK_TEXT, MUTED_TEXT, useThemeColors } from "@/constants/app-theme";
@@ -26,6 +26,8 @@ export type HistoryEntry = {
   id: string;
   pieceName: string;
   pieceReference: string;
+  // Foto del diseño, usada en la tarjeta que se comparte (null si no tiene).
+  pieceImageUrl: string | null;
   materialNames: string[];
   materialsCost: number;
   packagingCost: number;
@@ -124,6 +126,7 @@ export default function Historial() {
   // QuoteShareCard (más abajo) para poder capturarla como imagen.
   const [sharingEntry, setSharingEntry] = useState<HistoryEntry | null>(null);
   const shareCardRef = useRef<View>(null);
+  const { onImagePending, onImageSettled, waitForImage } = useQuoteImageReady();
   // Solo la primera carga muestra "Cargando historial...". Las siguientes
   // (cada vez que se vuelve a esta pestaña, ver useFocusEffect abajo) se
   // actualizan en silencio: la lista vieja se queda visible hasta que llega
@@ -228,6 +231,7 @@ export default function Historial() {
         const canShareImage =
           (await Sharing.isAvailableAsync()) && shareCardRef.current;
         if (canShareImage) {
+          await waitForImage(sharingEntry.pieceImageUrl);
           const uri = await captureRef(shareCardRef, {
             format: "png",
             quality: 1,
@@ -248,7 +252,7 @@ export default function Historial() {
   }, [sharingEntry, currency.symbol]);
 
   return (
-    <TabScreen active="historial">
+    <TabScreen active="historial" onRefresh={loadHistory}>
       <View className="mb-6 flex-row items-center gap-2">
         <Ionicons name="time-outline" size={26} color={AppColors.green} />
         <View className="flex-1">
@@ -459,6 +463,9 @@ export default function Historial() {
           <QuoteShareCard
             ref={shareCardRef}
             pieceName={sharingEntry.pieceName}
+            imageUrl={sharingEntry.pieceImageUrl}
+            onImagePending={onImagePending}
+            onImageSettled={onImageSettled}
             materialNames={sharingEntry.materialNames}
             salePrice={formatAmount(sharingEntry.finalPrice, currency.code)}
             currencySymbol={currency.symbol}

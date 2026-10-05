@@ -41,9 +41,3 @@ example
 # generated native folders
 ios/
 android/
-
-# Configuración local del editor, no es parte del proyecto
-.claude/
-.claudeignore
-CLAUDE.md
-AGENTS.md
