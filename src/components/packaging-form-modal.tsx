@@ -15,6 +15,7 @@ import {
   MUTED_TEXT,
   useFieldTintProps,
 } from "@/constants/app-theme";
+import { parseNumberInput } from "@/constants/number-input";
 
 // Forma del empaque tal como lo devuelve src/api/client.js (mapPackagingFromApi).
 export type ApiPackaging = {
@@ -67,6 +68,14 @@ export function PackagingFormModal({
   const save = async () => {
     if (!name.trim() || !unitCost) {
       setError("Completa el nombre y el valor unitario.");
+      return;
+    }
+    if (parseNumberInput(unitCost) === null) {
+      setError("El valor unitario no es un número válido.");
+      return;
+    }
+    if (stock.trim() && parseNumberInput(stock) === null) {
+      setError("La cantidad disponible no es un número válido.");
       return;
     }
 

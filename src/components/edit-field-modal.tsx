@@ -131,7 +131,9 @@ export function EditFieldModal({
                 Cancelar
               </Text>
             </Pressable>
-            <Button label={saveLabel} onPress={save} className="px-6 py-3" />
+            {/* "shrink" deja que el botón se ajuste al ancho disponible: con
+                un texto largo no empuja "Cancelar" ni se sale del cuadro. */}
+            <Button label={saveLabel} onPress={save} className="shrink px-6 py-3" />
           </View>
         </Pressable>
       </Pressable>

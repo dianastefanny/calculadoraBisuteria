@@ -22,6 +22,7 @@ import {
   MUTED_TEXT,
   useFieldTintProps,
 } from "@/constants/app-theme";
+import { parseNumberInput } from "@/constants/number-input";
 
 // Opción especial del selector de tipo de costo que abre el mini-formulario
 // de "crear tipo nuevo" en vez de seleccionarla directamente.
@@ -123,6 +124,10 @@ export function IndirectCostFormModal({
   const save = async () => {
     if (!costTypeId || !name.trim() || !monthlyAmount) {
       setError("Completa el tipo de costo, el nombre y el valor mensual.");
+      return;
+    }
+    if (parseNumberInput(monthlyAmount) === null) {
+      setError("El valor mensual no es un número válido.");
       return;
     }
 

@@ -16,6 +16,7 @@ import {
 import { FormError } from "@/components/form-error";
 import { SelectField } from "@/components/select-field";
 import { TextField } from "@/components/text-field";
+import { parseNumberInput } from "@/constants/number-input";
 import {
   CANVAS_BG,
   INK_TEXT,
@@ -126,8 +127,8 @@ export function BenefitFormModal({
       return;
     }
 
-    const value = Number(percentage);
-    if (Number.isNaN(value) || value < 0 || value > 100) {
+    const value = parseNumberInput(percentage);
+    if (value === null || value > 100) {
       setError("Ingresa un porcentaje válido entre 0 y 100.");
       return;
     }

@@ -21,6 +21,7 @@ import {
   useFieldTintProps,
 } from "@/constants/app-theme";
 import { formatAmount, useCurrency, type CurrencyOption } from "@/constants/currency-store";
+import { parseNumberInput } from "@/constants/number-input";
 
 type SectionProps = {
   step: number;
@@ -389,6 +390,21 @@ export default function Calculos() {
   const requestFinalCalculation = async () => {
     if (!canCalculateFinalCost || !selectedDesignId) return;
 
+    // Se leen con parseNumberInput para aceptar "1.000" o "10,5" igual que el
+    // resto de la app; si no son números válidos, no se calcula.
+    const parsedQuantity = quantity.trim() ? parseNumberInput(quantity) : 1;
+    const parsedDiscount = discountPercentage.trim()
+      ? parseNumberInput(discountPercentage)
+      : undefined;
+    if (parsedQuantity === null) {
+      setCalculationError("La cantidad de piezas no es un número válido.");
+      return;
+    }
+    if (parsedDiscount === null) {
+      setCalculationError("El descuento no es un número válido.");
+      return;
+    }
+
     setCalculationError(null);
     setCalculating(true);
     try {
@@ -397,10 +413,8 @@ export default function Calculos() {
         packagingId: selectedPackagingId,
         productionTimeMinutes: Math.max(1, Math.round(laborTimeSeconds / 60)),
         packagingQuantity: 1,
-        quantity: Math.max(1, parseInt(quantity, 10) || 1),
-        discountPercentage: discountPercentage
-          ? Number(discountPercentage)
-          : undefined,
+        quantity: Math.max(1, Math.round(parsedQuantity)),
+        discountPercentage: parsedDiscount,
         includeIndirectCosts,
         includeBenefits,
       });

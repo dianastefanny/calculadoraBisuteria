@@ -36,6 +36,7 @@ import {
   useThemeColors,
 } from "@/constants/app-theme";
 import { formatAmount, useCurrency } from "@/constants/currency-store";
+import { parseNumberInput } from "@/constants/number-input";
 import {
   EMAIL_REGEX,
   NAME_REGEX,
@@ -394,7 +395,7 @@ export default function Configuraciones() {
         },
       ],
       validate: (v) =>
-        !v.monthlySalary.trim() || Number.isNaN(Number(v.monthlySalary))
+        parseNumberInput(v.monthlySalary) === null
           ? "Ingresa un valor numérico válido."
           : null,
       onSave: (v) => saveConfig({ monthlySalary: v.monthlySalary }),
@@ -412,8 +413,7 @@ export default function Configuraciones() {
         },
       ],
       validate: (v) =>
-        !v.monthlyProductiveHours.trim() ||
-        Number.isNaN(Number(v.monthlyProductiveHours))
+        parseNumberInput(v.monthlyProductiveHours) === null
           ? "Ingresa un valor numérico válido."
           : null,
       onSave: (v) =>
@@ -434,8 +434,7 @@ export default function Configuraciones() {
       validate: (v) => {
         const trimmed = v.monthlyProduction.trim();
         if (!trimmed) return null;
-        const value = Number(trimmed);
-        return Number.isNaN(value) || value < 0
+        return parseNumberInput(trimmed) === null
           ? "Ingresa un número válido, o déjalo vacío."
           : null;
       },
@@ -455,9 +454,9 @@ export default function Configuraciones() {
         },
       ],
       validate: (v) => {
-        const value = Number(v.defaultMargin);
-        return !v.defaultMargin.trim() || Number.isNaN(value) || value < 0 || value > 99.99
-          ? "Ingresa un porcentaje válido entre 0 y 99.99."
+        const value = parseNumberInput(v.defaultMargin);
+        return value === null || value > 99.99
+          ? "Ingresa un porcentaje válido entre 0 y 99,99."
           : null;
       },
       onSave: (v) => saveConfig({ defaultMargin: v.defaultMargin }),
@@ -822,7 +821,7 @@ export default function Configuraciones() {
         visible={changingPassword}
         title="Cambiar contraseña"
         fields={passwordFields}
-        saveLabel="Actualizar contraseña"
+        saveLabel="Actualizar"
         validate={validatePassword}
         onSave={savePassword}
         onClose={() => setChangingPassword(false)}

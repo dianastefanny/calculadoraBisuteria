@@ -14,6 +14,11 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
+// Los números que escribe el usuario ("8.000", "2,50") se interpretan con
+// toApiNumber antes de enviarlos, y los que llegan del backend ("8000.00")
+// se pasan a los formularios con toInputValue. Ver number-input.ts.
+import { toApiNumber, toInputValue } from "@/constants/number-input";
+
 const TOKEN_KEY = "auth_token";
 
 // Orden alfabético (A-Z, sin distinguir mayúsculas/tildes) para las listas de
@@ -261,8 +266,8 @@ function mapMaterialFromApi(material) {
     categoryName: material.category?.name ?? "",
     name: material.name,
     unit: material.unit,
-    unitCost: String(material.unit_cost),
-    stock: material.stock != null ? String(material.stock) : "0",
+    unitCost: toInputValue(material.unit_cost),
+    stock: material.stock != null ? toInputValue(material.stock) : "0",
   };
 }
 
@@ -282,8 +287,8 @@ export async function createMaterial({
     material_category_id: Number(categoryId),
     name,
     unit,
-    unit_cost: unitCost,
-    stock: stock || undefined,
+    unit_cost: toApiNumber(unitCost),
+    stock: toApiNumber(stock),
   });
   return mapMaterialFromApi(data);
 }
@@ -296,8 +301,8 @@ export async function updateMaterial(
     material_category_id: Number(categoryId),
     name,
     unit,
-    unit_cost: unitCost,
-    stock,
+    unit_cost: toApiNumber(unitCost),
+    stock: toApiNumber(stock),
   });
   return mapMaterialFromApi(data);
 }
@@ -314,8 +319,8 @@ function mapPackagingFromApi(packaging) {
   return {
     id: String(packaging.id),
     name: packaging.name,
-    unitCost: String(packaging.unit_cost),
-    stock: packaging.stock != null ? String(packaging.stock) : "0",
+    unitCost: toInputValue(packaging.unit_cost),
+    stock: packaging.stock != null ? toInputValue(packaging.stock) : "0",
   };
 }
 
@@ -327,8 +332,8 @@ export async function fetchPackagings() {
 export async function createPackaging({ name, unitCost, stock }) {
   const { data } = await api.post("/packagings", {
     name,
-    unit_cost: unitCost,
-    stock: stock || undefined,
+    unit_cost: toApiNumber(unitCost),
+    stock: toApiNumber(stock),
   });
   return mapPackagingFromApi(data);
 }
@@ -336,8 +341,8 @@ export async function createPackaging({ name, unitCost, stock }) {
 export async function updatePackaging(id, { name, unitCost, stock }) {
   const { data } = await api.put(`/packagings/${id}`, {
     name,
-    unit_cost: unitCost,
-    stock,
+    unit_cost: toApiNumber(unitCost),
+    stock: toApiNumber(stock),
   });
   return mapPackagingFromApi(data);
 }
@@ -359,7 +364,7 @@ function mapDesignFromApi(design) {
     imageUrl: design.image_url ?? null,
     materials: (design.details ?? []).map((detail) => ({
       materialId: String(detail.material_id),
-      quantity: String(detail.quantity),
+      quantity: toInputValue(detail.quantity),
       materialName: detail.material?.name ?? "",
       materialUnit: detail.material?.unit ?? "",
     })),
@@ -383,7 +388,7 @@ export async function createDesign({
     reference: reference || undefined,
     materials: materials.map((item) => ({
       material_id: Number(item.materialId),
-      quantity: item.quantity,
+      quantity: toApiNumber(item.quantity),
     })),
   });
   return mapDesignFromApi(data);
@@ -399,7 +404,7 @@ export async function updateDesign(
     reference: reference || undefined,
     materials: materials.map((item) => ({
       material_id: Number(item.materialId),
-      quantity: item.quantity,
+      quantity: toApiNumber(item.quantity),
     })),
   });
   return mapDesignFromApi(data);
@@ -443,16 +448,16 @@ export async function deleteDesignImage(id) {
 
 function mapConfigurationFromApi(configuration) {
   return {
-    monthlySalary: String(configuration.monthly_salary),
-    monthlyWorkingHours: String(configuration.monthly_working_hours),
+    monthlySalary: toInputValue(configuration.monthly_salary),
+    monthlyWorkingHours: toInputValue(configuration.monthly_working_hours),
     // Opcional: null en el backend significa "no configurado" (se reparten
     // los costos indirectos por minuto en su lugar), se representa como
     // texto vacío para que el campo se vea vacío en el formulario.
     monthlyProduction:
       configuration.monthly_production != null
-        ? String(configuration.monthly_production)
+        ? toInputValue(configuration.monthly_production)
         : "",
-    defaultMargin: String(configuration.default_margin),
+    defaultMargin: toInputValue(configuration.default_margin),
     currency: configuration.currency,
     theme: configuration.theme,
   };
@@ -478,8 +483,8 @@ export async function updateConfiguration({
   currency,
 } = {}) {
   const { data } = await api.put("/configuration", {
-    monthly_salary: monthlySalary,
-    monthly_working_hours: monthlyWorkingHours,
+    monthly_salary: toApiNumber(monthlySalary),
+    monthly_working_hours: toApiNumber(monthlyWorkingHours),
     // "" (campo vacío en el formulario) se manda como null explícito para
     // borrar el valor guardado — un string vacío no pasaría la validación
     // "numeric" del backend. undefined (no se tocó este campo) se omite del
@@ -489,8 +494,8 @@ export async function updateConfiguration({
         ? undefined
         : monthlyProduction === "" || monthlyProduction === null
           ? null
-          : monthlyProduction,
-    default_margin: defaultMargin,
+          : toApiNumber(monthlyProduction),
+    default_margin: toApiNumber(defaultMargin),
     theme,
     currency,
   });
@@ -527,7 +532,7 @@ function mapIndirectCostFromApi(indirectCost) {
     costTypeId: String(indirectCost.cost_type_id),
     costTypeName: indirectCost.cost_type?.name ?? "",
     name: indirectCost.name,
-    monthlyAmount: String(indirectCost.monthly_amount),
+    monthlyAmount: toInputValue(indirectCost.monthly_amount),
   };
 }
 
@@ -540,7 +545,7 @@ export async function createIndirectCost({ costTypeId, name, monthlyAmount }) {
   const { data } = await api.post("/indirect-costs", {
     cost_type_id: Number(costTypeId),
     name,
-    monthly_amount: monthlyAmount,
+    monthly_amount: toApiNumber(monthlyAmount),
   });
   return mapIndirectCostFromApi(data);
 }
@@ -552,7 +557,7 @@ export async function updateIndirectCost(
   const { data } = await api.put(`/indirect-costs/${id}`, {
     cost_type_id: Number(costTypeId),
     name,
-    monthly_amount: monthlyAmount,
+    monthly_amount: toApiNumber(monthlyAmount),
   });
   return mapIndirectCostFromApi(data);
 }
@@ -592,7 +597,7 @@ function mapBenefitFromApi(benefit) {
     benefitTypeId: String(benefit.benefit_type_id),
     benefitTypeName: benefit.benefit_type?.name ?? "",
     name: benefit.name,
-    percentage: String(benefit.percentage),
+    percentage: toInputValue(benefit.percentage),
   };
 }
 
@@ -605,7 +610,7 @@ export async function createBenefit({ benefitTypeId, name, percentage }) {
   const { data } = await api.post("/benefits", {
     benefit_type_id: Number(benefitTypeId),
     name,
-    percentage,
+    percentage: toApiNumber(percentage),
   });
   return mapBenefitFromApi(data);
 }
@@ -614,7 +619,7 @@ export async function updateBenefit(id, { benefitTypeId, name, percentage }) {
   const { data } = await api.put(`/benefits/${id}`, {
     benefit_type_id: benefitTypeId ? Number(benefitTypeId) : undefined,
     name,
-    percentage,
+    percentage: toApiNumber(percentage),
   });
   return mapBenefitFromApi(data);
 }

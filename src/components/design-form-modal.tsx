@@ -28,6 +28,7 @@ import {
   useThemeColors,
 } from "@/constants/app-theme";
 import { formatAmount, useCurrency } from "@/constants/currency-store";
+import { parseNumberInput } from "@/constants/number-input";
 
 // Forma del material de un diseño, tal como la devuelve client.js.
 export type ApiDesignMaterial = {
@@ -174,6 +175,11 @@ export function DesignFormModal({
   // actualiza su cantidad en vez de duplicarlo.
   const addMaterialToDesign = () => {
     if (!pickerMaterialId || !pickerQuantity.trim()) return;
+    if (parseNumberInput(pickerQuantity) === null) {
+      setError("La cantidad del material no es un número válido.");
+      return;
+    }
+    setError(null);
 
     const pickedMaterial = materials.find((m) => m.id === pickerMaterialId);
     const newItem: ApiDesignMaterial = {

@@ -18,6 +18,7 @@ import {
   MUTED_TEXT,
   useFieldTintProps,
 } from "@/constants/app-theme";
+import { parseNumberInput } from "@/constants/number-input";
 
 // Forma del material tal como lo devuelve src/api/client.js (mapMaterialFromApi).
 export type ApiMaterial = {
@@ -94,6 +95,14 @@ export function MaterialFormModal({
   const save = async () => {
     if (!categoryId || !name.trim() || !unit || !unitCost) {
       setError("Completa categoría, nombre, unidad y costo unitario.");
+      return;
+    }
+    if (parseNumberInput(unitCost) === null) {
+      setError("El costo unitario no es un número válido.");
+      return;
+    }
+    if (stock.trim() && parseNumberInput(stock) === null) {
+      setError("El stock no es un número válido.");
       return;
     }
 

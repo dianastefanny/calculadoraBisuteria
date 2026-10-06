@@ -141,13 +141,16 @@ export const QuoteShareCard = forwardRef<View, QuoteShareCardProps>(
                   de 300 ms; si se captura a mitad del fundido sale
                   semitransparente sobre el degradado (opaca y verdosa).
                 - resizeMethod="scale": evita que Android la decodifique en
-                  menor resolución para ahorrar memoria (se veía borrosa). */}
+                  menor resolución para ahorrar memoria (se veía borrosa).
+                - 160 px centrada y no a todo el ancho, para que la tarjeta
+                  no quede casi del alto de la pantalla. */}
             {!!imageUrl && (
               <Image
                 source={{ uri: imageUrl }}
                 style={{
-                  width: "100%",
-                  aspectRatio: 1,
+                  width: 160,
+                  height: 160,
+                  alignSelf: "center",
                   borderRadius: 14,
                   marginBottom: 16,
                 }}
