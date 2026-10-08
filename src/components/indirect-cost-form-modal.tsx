@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Text } from "react-native";
 
 import {
   createCostType,
@@ -8,20 +8,15 @@ import {
   getErrorMessage,
   updateIndirectCost,
 } from "@/api/client";
-import { Button } from "@/components/button";
 import {
   EditFieldModal,
   type EditFieldModalField,
 } from "@/components/edit-field-modal";
 import { FormError } from "@/components/form-error";
+import { FormModal } from "@/components/form-modal";
 import { SelectField } from "@/components/select-field";
 import { TextField } from "@/components/text-field";
-import {
-  CANVAS_BG,
-  INK_TEXT,
-  MUTED_TEXT,
-  useFieldTintProps,
-} from "@/constants/app-theme";
+import { INK_TEXT, useFieldTintProps } from "@/constants/app-theme";
 import { parseNumberInput } from "@/constants/number-input";
 
 // Opción especial del selector de tipo de costo que abre el mini-formulario
@@ -150,80 +145,56 @@ export function IndirectCostFormModal({
   };
 
   return (
-    <Modal
+    <FormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? "Editar costo indirecto" : "Nuevo costo indirecto"}
+      submitLabel={isEditing ? "Guardar cambios" : "Crear"}
+      onSubmit={save}
+      submitting={submitting}
+      after={
+        <EditFieldModal
+          visible={creatingCostType}
+          title="Nuevo tipo de costo"
+          fields={newCostTypeField}
+          validate={(v) => (!v.name.trim() ? "Ingresa un nombre." : null)}
+          onSave={saveCostType}
+          onClose={() => setCreatingCostType(false)}
+        />
+      }
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 items-center justify-center bg-black/50 p-6"
-      >
-        <Pressable
-          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
-        >
-          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
-            {isEditing ? "Editar costo indirecto" : "Nuevo costo indirecto"}
-          </Text>
+      <FormError message={error} />
 
-          <ScrollView keyboardShouldPersistTaps="handled">
-            <FormError message={error} />
-
-            <SelectField
-              label="Tipo de costo"
-              value={costTypeId || null}
-              placeholder="Seleccionar tipo de costo..."
-              options={costTypeOptions}
-              onSelect={handleSelectCostType}
-              className="mb-3"
-            />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>Nombre</Text>
-            <TextField
-              value={name}
-              onChangeText={setName}
-              placeholder="Ej. Arriendo local"
-              className="mb-3"
-              autoCorrect={false}
-              {...fieldProps}
-            />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-              Valor mensual
-            </Text>
-            <TextField
-              value={monthlyAmount}
-              onChangeText={setMonthlyAmount}
-              keyboardType="numeric"
-              placeholder="0"
-              className="mb-3"
-              {...fieldProps}
-            />
-          </ScrollView>
-
-          <View className="mt-2 flex-row items-center justify-end gap-4">
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>Cancelar</Text>
-            </Pressable>
-            <Button
-              label={isEditing ? "Guardar cambios" : "Crear"}
-              onPress={save}
-              loading={submitting}
-              className="px-6 py-3"
-            />
-          </View>
-        </Pressable>
-      </Pressable>
-
-      <EditFieldModal
-        visible={creatingCostType}
-        title="Nuevo tipo de costo"
-        fields={newCostTypeField}
-        validate={(v) => (!v.name.trim() ? "Ingresa un nombre." : null)}
-        onSave={saveCostType}
-        onClose={() => setCreatingCostType(false)}
+      <SelectField
+        label="Tipo de costo"
+        value={costTypeId || null}
+        placeholder="Seleccionar tipo de costo..."
+        options={costTypeOptions}
+        onSelect={handleSelectCostType}
+        className="mb-3"
       />
-    </Modal>
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>Nombre</Text>
+      <TextField
+        value={name}
+        onChangeText={setName}
+        placeholder="Ej. Arriendo local"
+        className="mb-3"
+        autoCorrect={false}
+        {...fieldProps}
+      />
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+        Valor mensual
+      </Text>
+      <TextField
+        value={monthlyAmount}
+        onChangeText={setMonthlyAmount}
+        keyboardType="numeric"
+        placeholder="0"
+        className="mb-3"
+        {...fieldProps}
+      />
+    </FormModal>
   );
 }

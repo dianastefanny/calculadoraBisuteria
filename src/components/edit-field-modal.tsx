@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
-import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
+import { FormModal } from "@/components/form-modal";
 import { TextField, type TextFieldProps } from "@/components/text-field";
-import {
-  CANVAS_BG,
-  INK_TEXT,
-  MUTED_TEXT,
-  useFieldTintProps,
-} from "@/constants/app-theme";
+import { MUTED_TEXT, useFieldTintProps } from "@/constants/app-theme";
 
 export type EditFieldModalField = Pick<
   TextFieldProps,
@@ -41,8 +36,8 @@ export type EditFieldModalProps = {
  * Modal para editar uno o varios campos relacionados a la vez (por ejemplo,
  * nombre + apellido juntos, o contraseña actual + nueva + confirmar): se
  * abre con los valores actuales, valida al guardar y solo entonces llama a
- * onSave con todos los valores. Mismo estilo de modal blanco que ya usan
- * MaterialFormModal/PackagingFormModal/DesignFormModal.
+ * onSave con todos los valores. Usa FormModal, igual que todos los
+ * formularios de la app.
  */
 export function EditFieldModal({
   visible,
@@ -82,61 +77,38 @@ export function EditFieldModal({
   };
 
   return (
-    <Modal
+    <FormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={title}
+      submitLabel={saveLabel}
+      onSubmit={save}
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 items-center justify-center bg-black/50 p-6"
-      >
-        <Pressable
-          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
-        >
-          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
-            {title}
-          </Text>
+      <FormError message={error} />
 
-          <FormError message={error} />
-
-          {fields.map((field) => (
-            <View key={field.key}>
-              <TextField
-                label={field.label}
-                value={draft[field.key] ?? ""}
-                onChangeText={(text) =>
-                  setDraft((current) => ({ ...current, [field.key]: text }))
-                }
-                placeholder={field.placeholder}
-                icon={field.icon}
-                keyboardType={field.keyboardType}
-                autoCapitalize={field.autoCapitalize}
-                secureTextEntry={field.secureTextEntry}
-                autoCorrect={false}
-                {...fieldProps}
-              />
-              {field.helperText && (
-                <Text className={`-mt-3 mb-4 text-sm ${MUTED_TEXT}`}>
-                  {field.helperText}
-                </Text>
-              )}
-            </View>
-          ))}
-
-          <View className="mt-2 flex-row items-center justify-end gap-4">
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>
-                Cancelar
-              </Text>
-            </Pressable>
-            {/* "shrink" deja que el botón se ajuste al ancho disponible: con
-                un texto largo no empuja "Cancelar" ni se sale del cuadro. */}
-            <Button label={saveLabel} onPress={save} className="shrink px-6 py-3" />
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+      {fields.map((field) => (
+        <View key={field.key}>
+          <TextField
+            label={field.label}
+            value={draft[field.key] ?? ""}
+            onChangeText={(text) =>
+              setDraft((current) => ({ ...current, [field.key]: text }))
+            }
+            placeholder={field.placeholder}
+            icon={field.icon}
+            keyboardType={field.keyboardType}
+            autoCapitalize={field.autoCapitalize}
+            secureTextEntry={field.secureTextEntry}
+            autoCorrect={false}
+            {...fieldProps}
+          />
+          {field.helperText && (
+            <Text className={`-mt-3 mb-4 text-sm ${MUTED_TEXT}`}>
+              {field.helperText}
+            </Text>
+          )}
+        </View>
+      ))}
+    </FormModal>
   );
 }

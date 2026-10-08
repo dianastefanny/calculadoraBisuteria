@@ -1,4 +1,5 @@
-import { Image, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Text, View } from "react-native";
 
 export type BrandHeaderProps = {
   title?: string;
@@ -16,11 +17,14 @@ export function BrandHeader({
 }: BrandHeaderProps) {
   return (
     <View className={`mb-6 items-center ${className}`}>
+      {/* Logo animado (se reproduce una vez y queda en el logo final).
+          expo-image y no Image de react-native, porque en Android solo
+          expo-image anima los GIF. */}
       <Image
-        source={require("@/assets/images/logo-cc.png")}
-        className="mb-2"
-        style={{ width: 200, height: 200 }}
-        resizeMode="contain"
+        source={require("@/assets/images/logo-cc-animado.gif")}
+        style={{ width: 200, height: 200, marginBottom: 8 }}
+        contentFit="contain"
+        autoplay
       />
       <Text className="text-center font-extrabold tracking-wide text-brand-turquoise">
         {title}

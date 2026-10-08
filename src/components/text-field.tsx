@@ -9,6 +9,7 @@ import {
   type TextInputProps,
 } from "react-native";
 
+import { useCompactField } from "@/components/field-density";
 import { INK_TEXT, useThemeColors } from "@/constants/app-theme";
 
 export type TextFieldProps = {
@@ -26,6 +27,9 @@ export type TextFieldProps = {
   // aplican de forma confiable un "text-*" de inputClassName por encima del
   // "text-white" por defecto, dejando el texto invisible al escribir.
   inputStyle?: TextStyle;
+  // Versión compacta (menos alto). Si no se indica, es compacta solo dentro
+  // de un FormModal (ver field-density.ts).
+  compact?: boolean;
 } & Omit<
   TextInputProps,
   "value" | "onChangeText" | "style" | "placeholderTextColor"
@@ -53,8 +57,10 @@ export function TextField({
   inputClassName = "",
   placeholderColor,
   inputStyle,
+  compact: compactProp,
   ...inputProps
 }: TextFieldProps) {
+  const compact = useCompactField(compactProp);
   // Mientras "hidden" sea true, la contraseña se ve como puntos; el ojito la cambia.
   const [hidden, setHidden] = useState(secureTextEntry);
   const hasError = Boolean(error);
@@ -76,7 +82,7 @@ export function TextField({
           placeholderTextColor={placeholderColor ?? theme.mutedInk}
           secureTextEntry={secureTextEntry && hidden}
           style={inputStyle ?? { color: theme.ink }}
-          className={`rounded-[9px] border bg-brand-input p-[13px] ${
+          className={`rounded-[9px] border bg-brand-input ${compact ? "px-3 py-2" : "p-[13px]"} ${
             icon ? "pl-10" : ""
           } ${secureTextEntry ? "pr-10" : ""} ${
             hasError ? "border-brand-error" : "border-brand-input-border"

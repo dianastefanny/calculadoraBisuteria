@@ -2,6 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
+import { useCompactField } from "@/components/field-density";
 import {
   CANVAS_BG,
   FIELD_TINT_BG,
@@ -28,6 +29,9 @@ export type SelectFieldProps = {
   // el botón degradado de Button); recibe "open" para abrir el mismo modal
   // de opciones que usa el recuadro por defecto.
   trigger?: (open: () => void) => ReactNode;
+  // Versión compacta (menos alto). Si no se indica, es compacta solo dentro
+  // de un FormModal (ver field-density.ts).
+  compact?: boolean;
 };
 
 /**
@@ -45,7 +49,9 @@ export function SelectField({
   onSelect,
   className = "",
   trigger,
+  compact: compactProp,
 }: SelectFieldProps) {
+  const compact = useCompactField(compactProp);
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.id === value);
   const theme = useThemeColors();
@@ -59,7 +65,7 @@ export function SelectField({
           {label && <Text className={`mb-1 font-bold ${INK_TEXT}`}>{label}</Text>}
           <Pressable
             onPress={() => setOpen(true)}
-            className={`flex-row items-center justify-between rounded-[9px] border p-[13px] ${FIELD_TINT_BORDER} ${FIELD_TINT_BG}`}
+            className={`flex-row items-center justify-between rounded-[9px] border ${compact ? "px-3 py-2" : "p-[13px]"} ${FIELD_TINT_BORDER} ${FIELD_TINT_BG}`}
           >
             <Text
               className={selected ? INK_TEXT : MUTED_TEXT}
@@ -78,11 +84,15 @@ export function SelectField({
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable
-          onPress={() => setOpen(false)}
-          className="flex-1 items-center justify-center bg-black/50 p-6"
-        >
+        <View className="flex-1 items-center justify-center p-6">
+          {/* Fondo oscuro como capa aparte (tocarlo cierra la lista); la
+              tarjeta no va dentro de un Pressable para que no le "robe" el
+              toque al ScrollView y la lista se desplace sin trabarse. */}
           <Pressable
+            onPress={() => setOpen(false)}
+            className="absolute inset-0 bg-black/50"
+          />
+          <View
             className={`w-full max-w-xs rounded-2xl p-4 shadow-md shadow-black/20 ${CANVAS_BG}`}
           >
             {label && (
@@ -113,8 +123,8 @@ export function SelectField({
                 </Pressable>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );

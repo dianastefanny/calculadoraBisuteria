@@ -22,6 +22,9 @@ export type ButtonProps = {
   icon?: keyof typeof Ionicons.glyphMap;
   loading?: boolean;
   disabled?: boolean;
+  // "sm": versión compacta (menos relleno y letra un poco más pequeña), para
+  // formularios con muchos campos donde el botón normal ocupa demasiado.
+  size?: "md" | "sm";
   className?: string;
 } & Omit<PressableProps, "onPress" | "style" | "children" | "disabled">;
 
@@ -46,11 +49,15 @@ export function Button({
   icon,
   loading = false,
   disabled = false,
+  size = "md",
   className = "",
   ...pressableProps
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const isLight = variant === "light";
+  const isSmall = size === "sm";
+  // Relleno interno del botón (el del degradado en el primario).
+  const padding = isSmall ? "px-3 py-2" : "p-4";
   const content = loading ? (
     <ActivityIndicator color={isLight ? AppColors.background : AppColors.white} />
   ) : (
@@ -58,12 +65,12 @@ export function Button({
       {icon && (
         <Ionicons
           name={icon}
-          size={18}
+          size={isSmall ? 16 : 18}
           color={isLight ? AppColors.green : AppColors.white}
         />
       )}
       <Text
-        className={`text-center font-extrabold ${isLight ? "text-brand-background" : "text-white"}`}
+        className={`text-center font-extrabold ${isSmall ? "text-sm" : ""} ${isLight ? "text-brand-background" : "text-white"}`}
       >
         {label}
       </Text>
@@ -75,7 +82,7 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
-        className={`rounded-2xl bg-white p-4 ${isDisabled ? "opacity-60" : ""} ${className}`}
+        className={`rounded-2xl bg-white ${padding} ${isDisabled ? "opacity-60" : ""} ${className}`}
         {...pressableProps}
       >
         {content}
@@ -88,7 +95,7 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
-        className={`rounded-[9px] bg-brand-green p-4 ${isDisabled ? "opacity-60" : ""} ${className}`}
+        className={`rounded-[9px] bg-brand-green ${padding} ${isDisabled ? "opacity-60" : ""} ${className}`}
         {...pressableProps}
       >
         {content}
@@ -107,7 +114,7 @@ export function Button({
         colors={[AppColors.turquoise, AppColors.green]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className="rounded-[9px] p-4"
+        className={`rounded-[9px] ${padding}`}
       >
         {content}
       </LinearGradient>

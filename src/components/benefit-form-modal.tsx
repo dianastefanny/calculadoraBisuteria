@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Text } from "react-native";
 
 import {
   createBenefit,
@@ -8,21 +8,16 @@ import {
   getErrorMessage,
   updateBenefit,
 } from "@/api/client";
-import { Button } from "@/components/button";
 import {
   EditFieldModal,
   type EditFieldModalField,
 } from "@/components/edit-field-modal";
 import { FormError } from "@/components/form-error";
+import { FormModal } from "@/components/form-modal";
 import { SelectField } from "@/components/select-field";
 import { TextField } from "@/components/text-field";
+import { INK_TEXT, useFieldTintProps } from "@/constants/app-theme";
 import { parseNumberInput } from "@/constants/number-input";
-import {
-  CANVAS_BG,
-  INK_TEXT,
-  MUTED_TEXT,
-  useFieldTintProps,
-} from "@/constants/app-theme";
 
 // Opción especial del selector de tipo de prestación que abre el
 // mini-formulario de "crear tipo nuevo" en vez de seleccionarla directamente.
@@ -152,80 +147,56 @@ export function BenefitFormModal({
   };
 
   return (
-    <Modal
+    <FormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? "Editar prestación" : "Nueva prestación"}
+      submitLabel={isEditing ? "Guardar cambios" : "Crear"}
+      onSubmit={save}
+      submitting={submitting}
+      after={
+        <EditFieldModal
+          visible={creatingBenefitType}
+          title="Nuevo tipo de prestación"
+          fields={newBenefitTypeField}
+          validate={(v) => (!v.name.trim() ? "Ingresa un nombre." : null)}
+          onSave={saveBenefitType}
+          onClose={() => setCreatingBenefitType(false)}
+        />
+      }
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 items-center justify-center bg-black/50 p-6"
-      >
-        <Pressable
-          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
-        >
-          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
-            {isEditing ? "Editar prestación" : "Nueva prestación"}
-          </Text>
+      <FormError message={error} />
 
-          <ScrollView keyboardShouldPersistTaps="handled">
-            <FormError message={error} />
-
-            <SelectField
-              label="Tipo de prestación"
-              value={benefitTypeId || null}
-              placeholder="Seleccionar tipo de prestación..."
-              options={benefitTypeOptions}
-              onSelect={handleSelectBenefitType}
-              className="mb-3"
-            />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>Nombre</Text>
-            <TextField
-              value={name}
-              onChangeText={setName}
-              placeholder="Ej. ARL"
-              className="mb-3"
-              autoCorrect={false}
-              {...fieldProps}
-            />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-              Porcentaje (%)
-            </Text>
-            <TextField
-              value={percentage}
-              onChangeText={setPercentage}
-              keyboardType="numeric"
-              placeholder="0"
-              className="mb-3"
-              {...fieldProps}
-            />
-          </ScrollView>
-
-          <View className="mt-2 flex-row items-center justify-end gap-4">
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>Cancelar</Text>
-            </Pressable>
-            <Button
-              label={isEditing ? "Guardar cambios" : "Crear"}
-              onPress={save}
-              loading={submitting}
-              className="px-6 py-3"
-            />
-          </View>
-        </Pressable>
-      </Pressable>
-
-      <EditFieldModal
-        visible={creatingBenefitType}
-        title="Nuevo tipo de prestación"
-        fields={newBenefitTypeField}
-        validate={(v) => (!v.name.trim() ? "Ingresa un nombre." : null)}
-        onSave={saveBenefitType}
-        onClose={() => setCreatingBenefitType(false)}
+      <SelectField
+        label="Tipo de prestación"
+        value={benefitTypeId || null}
+        placeholder="Seleccionar tipo de prestación..."
+        options={benefitTypeOptions}
+        onSelect={handleSelectBenefitType}
+        className="mb-3"
       />
-    </Modal>
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>Nombre</Text>
+      <TextField
+        value={name}
+        onChangeText={setName}
+        placeholder="Ej. ARL"
+        className="mb-3"
+        autoCorrect={false}
+        {...fieldProps}
+      />
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+        Porcentaje (%)
+      </Text>
+      <TextField
+        value={percentage}
+        onChangeText={setPercentage}
+        keyboardType="numeric"
+        placeholder="0"
+        className="mb-3"
+        {...fieldProps}
+      />
+    </FormModal>
   );
 }

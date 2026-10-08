@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import {
   createPackaging,
   getErrorMessage,
   updatePackaging,
 } from "@/api/client";
-import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
+import { FormModal } from "@/components/form-modal";
 import { TextField } from "@/components/text-field";
-import {
-  CANVAS_BG,
-  INK_TEXT,
-  MUTED_TEXT,
-  useFieldTintProps,
-} from "@/constants/app-theme";
+import { INK_TEXT, useFieldTintProps } from "@/constants/app-theme";
 import { parseNumberInput } from "@/constants/number-input";
 
 // Forma del empaque tal como lo devuelve src/api/client.js (mapPackagingFromApi).
@@ -98,81 +93,56 @@ export function PackagingFormModal({
   };
 
   return (
-    <Modal
+    <FormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? "Editar empaque" : "Nuevo empaque"}
+      submitLabel={isEditing ? "Guardar cambios" : "Crear"}
+      onSubmit={save}
+      submitting={submitting}
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 items-center justify-center bg-black/50 p-6"
-      >
-        <Pressable
-          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
-        >
-          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
-            {isEditing ? "Editar empaque" : "Nuevo empaque"}
+      <FormError message={error} />
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+        Nombre del empaque
+      </Text>
+      <TextField
+        value={name}
+        onChangeText={setName}
+        placeholder="Ej. Tulita"
+        className="mb-3"
+        autoCorrect={false}
+        {...fieldProps}
+      />
+
+      <View className="flex-row gap-3">
+        <View style={{ flex: 1 }}>
+          <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+            Valor unitario
           </Text>
-
-          <ScrollView keyboardShouldPersistTaps="handled">
-            <FormError message={error} />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-              Nombre del empaque
-            </Text>
-            <TextField
-              value={name}
-              onChangeText={setName}
-              placeholder="Ej. Tulita"
-              className="mb-3"
-              autoCorrect={false}
-              {...fieldProps}
-            />
-
-            <View className="flex-row gap-3">
-              <View style={{ flex: 1 }}>
-                <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-                  Valor unitario
-                </Text>
-                <TextField
-                  value={unitCost}
-                  onChangeText={setUnitCost}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  className="mb-3"
-                  {...fieldProps}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-                  Cantidad disponible
-                </Text>
-                <TextField
-                  value={stock}
-                  onChangeText={setStock}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  className="mb-3"
-                  {...fieldProps}
-                />
-              </View>
-            </View>
-          </ScrollView>
-
-          <View className="mt-2 flex-row items-center justify-end gap-4">
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>Cancelar</Text>
-            </Pressable>
-            <Button
-              label={isEditing ? "Guardar cambios" : "Crear"}
-              onPress={save}
-              loading={submitting}
-              className="px-6 py-3"
-            />
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          <TextField
+            value={unitCost}
+            onChangeText={setUnitCost}
+            keyboardType="numeric"
+            placeholder="0"
+            className="mb-3"
+            {...fieldProps}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+            Cantidad disponible
+          </Text>
+          <TextField
+            value={stock}
+            onChangeText={setStock}
+            keyboardType="numeric"
+            placeholder="0"
+            className="mb-3"
+            {...fieldProps}
+          />
+        </View>
+      </View>
+    </FormModal>
   );
 }

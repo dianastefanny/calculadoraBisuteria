@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import {
   createMaterial,
@@ -8,16 +8,11 @@ import {
   MATERIAL_UNIT_OPTIONS,
   updateMaterial,
 } from "@/api/client";
-import { Button } from "@/components/button";
 import { FormError } from "@/components/form-error";
+import { FormModal } from "@/components/form-modal";
 import { SelectField } from "@/components/select-field";
 import { TextField } from "@/components/text-field";
-import {
-  CANVAS_BG,
-  INK_TEXT,
-  MUTED_TEXT,
-  useFieldTintProps,
-} from "@/constants/app-theme";
+import { INK_TEXT, useFieldTintProps } from "@/constants/app-theme";
 import { parseNumberInput } from "@/constants/number-input";
 
 // Forma del material tal como lo devuelve src/api/client.js (mapMaterialFromApi).
@@ -125,99 +120,74 @@ export function MaterialFormModal({
   };
 
   return (
-    <Modal
+    <FormModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? "Editar material" : "Nuevo material"}
+      submitLabel={isEditing ? "Guardar cambios" : "Crear"}
+      onSubmit={save}
+      submitting={submitting}
     >
-      <Pressable
-        onPress={onClose}
-        className="flex-1 items-center justify-center bg-black/50 p-6"
-      >
-        <Pressable
-          className={`w-full max-w-sm rounded-2xl p-5 shadow-md shadow-black/20 ${CANVAS_BG}`}
-        >
-          <Text className={`mb-4 text-lg font-extrabold ${INK_TEXT}`}>
-            {isEditing ? "Editar material" : "Nuevo material"}
+      <FormError message={error} />
+
+      <SelectField
+        label="Categoría"
+        value={categoryId || null}
+        placeholder="Seleccionar categoría..."
+        options={categoryOptions}
+        onSelect={setCategoryId}
+        className="mb-3"
+      />
+
+      <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+        Nombre del material
+      </Text>
+      <TextField
+        value={name}
+        onChangeText={setName}
+        placeholder="Ej. Mostacilla plateada 4 mm"
+        className="mb-3"
+        autoCorrect={false}
+        {...fieldProps}
+      />
+
+      <SelectField
+        label="Unidad de medida"
+        value={unit || null}
+        placeholder="Seleccionar unidad..."
+        options={UNIT_OPTIONS}
+        onSelect={setUnit}
+        className="mb-3"
+      />
+
+      <View className="flex-row gap-3">
+        <View style={{ flex: 1 }}>
+          <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+            Costo unitario
           </Text>
-
-          <ScrollView keyboardShouldPersistTaps="handled">
-            <FormError message={error} />
-
-            <SelectField
-              label="Categoría"
-              value={categoryId || null}
-              placeholder="Seleccionar categoría..."
-              options={categoryOptions}
-              onSelect={setCategoryId}
-              className="mb-3"
-            />
-
-            <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-              Nombre del material
-            </Text>
-            <TextField
-              value={name}
-              onChangeText={setName}
-              placeholder="Ej. Mostacilla plateada 4 mm"
-              className="mb-3"
-              autoCorrect={false}
-              {...fieldProps}
-            />
-
-            <SelectField
-              label="Unidad de medida"
-              value={unit || null}
-              placeholder="Seleccionar unidad..."
-              options={UNIT_OPTIONS}
-              onSelect={setUnit}
-              className="mb-3"
-            />
-
-            <View className="flex-row gap-3">
-              <View style={{ flex: 1 }}>
-                <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-                  Costo unitario
-                </Text>
-                <TextField
-                  value={unitCost}
-                  onChangeText={setUnitCost}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  className="mb-3"
-                  {...fieldProps}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text className={`mb-1 font-bold ${INK_TEXT}`}>
-                  Stock / Cantidad
-                </Text>
-                <TextField
-                  value={stock}
-                  onChangeText={setStock}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  className="mb-3"
-                  {...fieldProps}
-                />
-              </View>
-            </View>
-          </ScrollView>
-
-          <View className="mt-2 flex-row items-center justify-end gap-4">
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Text className={`font-bold ${MUTED_TEXT}`}>Cancelar</Text>
-            </Pressable>
-            <Button
-              label={isEditing ? "Guardar cambios" : "Crear"}
-              onPress={save}
-              loading={submitting}
-              className="px-6 py-3"
-            />
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          <TextField
+            value={unitCost}
+            onChangeText={setUnitCost}
+            keyboardType="numeric"
+            placeholder="0"
+            className="mb-3"
+            {...fieldProps}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text className={`mb-1 font-bold ${INK_TEXT}`}>
+            Stock / Cantidad
+          </Text>
+          <TextField
+            value={stock}
+            onChangeText={setStock}
+            keyboardType="numeric"
+            placeholder="0"
+            className="mb-3"
+            {...fieldProps}
+          />
+        </View>
+      </View>
+    </FormModal>
   );
 }

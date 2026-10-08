@@ -63,7 +63,7 @@ export function BottomNav({ active }: BottomNavProps) {
           <Pressable
             key={tab.key}
             onPress={() => !isActive && router.navigate(tab.route)}
-            className="flex-1 items-center gap-1 py-1"
+            className="flex-1 items-center gap-1 px-0.5 py-1"
             hitSlop={4}
           >
             <Ionicons
@@ -71,8 +71,14 @@ export function BottomNav({ active }: BottomNavProps) {
               size={22}
               color={isActive ? theme.ink : theme.mutedInk}
             />
+            {/* Son 7 pestañas: en un celular angosto a cada una le tocan ~50
+                px. Todas con el mismo tamaño (10 px) y en una sola línea: si
+                un nombre no cabe (ej. "Configuraciones") se corta con "…".
+                No se usa el ajuste automático: achicaba cada nombre distinto
+                y la barra se veía dispareja. */}
             <Text
-              className={`text-[11px] ${
+              numberOfLines={1}
+              className={`text-[10px] ${
                 isActive ? `font-extrabold ${INK_TEXT}` : `font-medium ${MUTED_TEXT}`
               }`}
             >

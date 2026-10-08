@@ -136,8 +136,8 @@ export default function Inicio() {
               <Text className={`mb-2 text-[17px] font-extrabold ${INK_TEXT}`}>
                 Costos y prestaciones
               </Text>
-              {settingsRow("cash-outline", "Costos indirectos activos", stats.totalIndirectCosts, true)}
-              {settingsRow("shield-checkmark-outline", "Prestaciones legales activas", stats.totalBenefits, false)}
+              {settingsRow("cash-outline", "Costos indirectos", stats.totalIndirectCosts, true)}
+              {settingsRow("shield-checkmark-outline", "Prestaciones legales", stats.totalBenefits, false)}
             </Card>
 
             <Text className={`text-center text-sm ${MUTED_TEXT}`}>
